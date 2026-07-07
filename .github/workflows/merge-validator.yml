@@ -19,8 +19,6 @@ concurrency:
 jobs:
   full-validation:
     name: Build WASM + package (with SDK)
-    # Fork PRs have no access to the SDK secrets, and this module has no
-    # SDK-free build path, so only same-repo events run.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.head.repo.full_name == github.repository &&

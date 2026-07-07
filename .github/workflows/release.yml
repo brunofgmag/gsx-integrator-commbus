@@ -130,8 +130,6 @@ jobs:
         env:
           VER: ${{ needs.version.outputs.version }}
         run: |
-          # The zip carries the gsx-integrator-commbus folder at its root,
-          # ready to drop into the simulator's Community folder.
           $zip = "gsx-integrator-commbus-$env:VER.zip"
           Compress-Archive -Path 'Packages/gsx-integrator-commbus' -DestinationPath $zip -Force
           $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLower()

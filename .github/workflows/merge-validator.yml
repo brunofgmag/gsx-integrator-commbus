@@ -17,6 +17,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  spb-guard:
+    name: Prebuilt SPB up to date
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+
+      - name: Fail if the panel XML changed without the prebuilt SPB
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          changed="$(git diff --name-only "$BASE"...HEAD)"
+          if grep -qxF 'PackageSources/InGamePanels/gsx-integrator-commbus.xml' <<<"$changed" \
+            && ! grep -qxF 'tools/prebuilt/gsx-integrator-commbus.spb' <<<"$changed"; then
+            echo "::error::Panel XML changed but tools/prebuilt/gsx-integrator-commbus.spb was not updated. Rebuild locally with ./build.ps1 (without -NoSim) and copy Packages/gsx-integrator-commbus/InGamePanels/gsx-integrator-commbus.spb to tools/prebuilt/."
+            exit 1
+          fi
+
   full-validation:
     name: Build WASM + package (with SDK)
     if: >-
@@ -43,4 +66,4 @@ jobs:
 
       - name: Build WASM + package (Release)
         shell: pwsh
-        run: ./build.ps1 -Config Release
+        run: ./build.ps1 -Config Release -NoSim

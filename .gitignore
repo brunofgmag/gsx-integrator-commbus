@@ -27,8 +27,9 @@ docs/
 # Compiled WASM artifact
 PackageSources/modules/*.wasm
 
-# Compiled SPB
+# Compiled SPB (except the prebuilt one used for CI packaging)
 *.spb
+!tools/prebuilt/*.spb
 
 # IDE / tooling
 .vscode/

@@ -123,7 +123,7 @@ jobs:
 
       - name: Build WASM + package (Release)
         shell: pwsh
-        run: ./build.ps1 -Config Release
+        run: ./build.ps1 -Config Release -NoSim
 
       - name: Package zip + sha256
         shell: pwsh

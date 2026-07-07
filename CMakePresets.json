@@ -1,0 +1,40 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 21,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "wasm-base",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "toolchainFile": "${sourceDir}/cmake/wasi-msfs-toolchain.cmake"
+        },
+        {
+            "name": "debug",
+            "displayName": "MSFS WASM - Debug",
+            "inherits": "wasm-base",
+            "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+        },
+        {
+            "name": "release",
+            "displayName": "MSFS WASM - Release",
+            "inherits": "wasm-base",
+            "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+        },
+        {
+            "name": "relwithdebinfo",
+            "displayName": "MSFS WASM - RelWithDebInfo",
+            "inherits": "wasm-base",
+            "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" }
+        }
+    ],
+    "buildPresets": [
+        { "name": "debug", "configurePreset": "debug" },
+        { "name": "release", "configurePreset": "release" },
+        { "name": "relwithdebinfo", "configurePreset": "relwithdebinfo" }
+    ]
+}

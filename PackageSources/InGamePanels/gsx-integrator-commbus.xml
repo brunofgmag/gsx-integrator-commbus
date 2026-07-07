@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<SimBase.Document Type="InGamePanels" version="1,0">
+  <Filename>gsx_integrator_commbus.spb</Filename>
+  <InGamePanels.InGamePanelDefinition
+      id="PANEL_GSX_INTEGRATOR_COMMBUS"
+      Name="GSX Integrator CommBus"
+      url="HTML_UI/InGamePanels/GsxIntegratorCommBus/index.html"
+      icon="GSX_INTEGRATOR_COMMBUS_ICON"
+      resizeDirections="Both"
+      minWidth="48"
+      minHeight="40"
+      defaultWidth="56"
+      defaultHeight="48"
+      defaultTop="10"
+      defaultRight="10"
+      buttonVisible="true"
+      collapsible="true"
+      headerVisible="true"
+      isPanelCloseable="true">
+  </InGamePanels.InGamePanelDefinition>
+</SimBase.Document>

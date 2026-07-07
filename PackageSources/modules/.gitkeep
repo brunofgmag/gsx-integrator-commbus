@@ -1,0 +1,2 @@
+# The compiled gsx-integrator-commbus.wasm is emitted here by CMake (build.ps1)
+# and copied into the final package's modules/ folder by fspackagetool.

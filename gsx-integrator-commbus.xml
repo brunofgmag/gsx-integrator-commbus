@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Version="2"
+         Name="gsx-integrator-commbus"
+         FolderName="Packages"
+         PublishingGroupFolderName="PublishingGroupsContent"
+         MetadataFolderName="PackagesMetadata"
+         PublishingGroupMetadataFolderName="PublishingGroupsMetadata">
+  <OutputDirectory>.</OutputDirectory>
+  <TemporaryOutputDirectory>_Temp</TemporaryOutputDirectory>
+  <PublishingGroupTemporaryOutputDirectory>_PubTemp</PublishingGroupTemporaryOutputDirectory>
+  <Packages>
+    <Package>PackageDefinitions\gsx-integrator-commbus.xml</Package>
+  </Packages>
+  <PublishingGroups/>
+</Project>

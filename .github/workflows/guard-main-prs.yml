@@ -1,0 +1,22 @@
+name: Guard main PRs
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+    branches: [main]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close-unauthorized:
+    if: github.event.pull_request.user.login != 'brunofgmag'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh pr close ${{ github.event.pull_request.number }}
+          --repo ${{ github.repository }}
+          --comment "PRs to main are restricted to the maintainer. Open a PR against the develop branch instead."

@@ -1,0 +1,52 @@
+# Build output
+build/
+Packages/
+PackagesMetadata/
+PublishingGroupsContent/
+PublishingGroupsMetadata/
+_Temp/
+_PubTemp/
+
+# AI/Tools
+.claude/
+.cursor/
+.copilot/
+.github/copilot/
+.venv/
+__pycache__/
+.agents/
+.serena/
+.ai/
+
+# Reports
+graphify-out/
+
+# Docs
+docs/
+
+# Compiled WASM artifact
+PackageSources/modules/*.wasm
+
+# Compiled SPB
+*.spb
+
+# IDE / tooling
+.vscode/
+.idea/
+.zed/
+cmake-build-*/
+out/
+*.swp
+*.swo
+*~
+.cache/
+compile_commands.json
+
+# Local backups
+_backups/
+_Temp/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store

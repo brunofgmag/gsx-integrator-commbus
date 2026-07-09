@@ -1,0 +1,20 @@
+name: Bump Version
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: bump-version-develop
+  cancel-in-progress: false
+
+jobs:
+  bump-version:
+    uses: brunofgmag/gsx-integrator-ci/.github/workflows/bump-version.yml@main
+    secrets: inherit

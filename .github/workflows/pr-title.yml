@@ -1,0 +1,22 @@
+name: PR Title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+    branches: [develop, main]
+
+permissions: {}
+
+jobs:
+  lint-title:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      TITLE: ${{ github.event.pull_request.title }}
+    steps:
+      - name: Require conventional commit title
+        run: |
+          if ! echo "$TITLE" | grep -qE '^(feat|fix|chore|docs|refactor|perf|test|build|ci|style|revert)(\([a-z0-9./-]+\))?!?: .+'; then
+            echo "::error::PR title must follow Conventional Commits (e.g. 'feat: auto-update'). Got: $TITLE"
+            exit 1
+          fi

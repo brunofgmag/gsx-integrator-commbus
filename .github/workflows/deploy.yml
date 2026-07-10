@@ -1,8 +1,8 @@
-name: Release
+name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       version:
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-main
+  group: deploy-main
   cancel-in-progress: false
 
 jobs:
@@ -25,15 +25,15 @@ jobs:
     outputs:
       version: ${{ steps.read.outputs.version }}
       tag: ${{ steps.read.outputs.tag }}
-      release_exists: ${{ steps.releasecheck.outputs.exists }}
+      release_exists: ${{ steps.duplicate-check.outputs.exists }}
       build_ref: ${{ steps.buildref.outputs.ref }}
     steps:
-      - name: Guard branch
+      - name: Verify branch
         env:
           REF: ${{ github.ref }}
         run: |
           if [ "$REF" != "refs/heads/main" ]; then
-            echo "::error::release must run on main. Got: $REF"
+            echo "::error::deploy must run on main. Got: $REF"
             exit 1
           fi
 
@@ -42,7 +42,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Read and validate VERSION.txt
+      - name: Validate VERSION.txt
         id: read
         env:
           REQ_VERSION: ${{ github.event.inputs.version }}
@@ -57,8 +57,8 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
-      - name: Check whether the release already exists (with both assets)
-        id: releasecheck
+      - name: Check duplicate
+        id: duplicate-check
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.read.outputs.tag }}
@@ -67,9 +67,6 @@ jobs:
           set -euo pipefail
           zip="gsx-integrator-commbus-$VER.zip"
           sha="$zip.sha256"
-          # A release only counts as "done" when it exists AND carries both assets.
-          # A release object created by a previous run that failed mid-upload must not
-          # short-circuit the rebuild/re-upload.
           if names="$(gh release view "$TAG" --json assets --jq '.assets[].name' 2>/dev/null)"; then
             if grep -qxF "$zip" <<<"$names" && grep -qxF "$sha" <<<"$names"; then
               echo "exists=true" >> "$GITHUB_OUTPUT"
@@ -82,7 +79,7 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Resolve the commit to build
+      - name: Resolve commit
         id: buildref
         env:
           TAG: ${{ steps.read.outputs.tag }}
@@ -96,12 +93,11 @@ jobs:
           fi
 
   build:
-    name: Build + package (Windows)
+    name: Build + Package
     needs: version
     if: needs.version.outputs.release_exists == 'false'
     runs-on: windows-latest
     timeout-minutes: 60
-    environment: release
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -121,11 +117,11 @@ jobs:
             ./tools/setup-msfs-sdk.ps1 -Url $env:MSFS_SDK_URL
           }
 
-      - name: Build WASM + package (Release)
+      - name: Build
         shell: pwsh
         run: ./build.ps1 -Config Release -NoSim
 
-      - name: Package zip + sha256
+      - name: Package + Hash
         shell: pwsh
         env:
           VER: ${{ needs.version.outputs.version }}
@@ -135,7 +131,7 @@ jobs:
           $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLower()
           "$hash  $zip" | Out-File -FilePath "$zip.sha256" -Encoding ascii -NoNewline
 
-      - name: Upload release artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-bundle
@@ -145,8 +141,8 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Tag + GitHub Release
-    needs: [version, build]
+    name: Publish
+    needs: [ version, build ]
     if: needs.version.outputs.release_exists == 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -158,12 +154,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download release artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: release-bundle
 
-      - name: Extract release notes from CHANGELOG
+      - name: Extract release notes
         id: notes
         env:
           VER: ${{ needs.version.outputs.version }}
@@ -180,7 +176,7 @@ jobs:
           [ -s "$out" ] || echo "Release v$VER" > "$out"
           echo "path=$out" >> "$GITHUB_OUTPUT"
 
-      - name: Create annotated tag if missing
+      - name: Create tag
         env:
           TAG: ${{ needs.version.outputs.tag }}
         run: |
@@ -194,7 +190,7 @@ jobs:
             git push origin "$TAG"
           fi
 
-      - name: Publish GitHub Release (create or update)
+      - name: Publish
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: ${{ needs.version.outputs.tag }}

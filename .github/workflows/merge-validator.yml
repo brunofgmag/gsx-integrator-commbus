@@ -2,7 +2,7 @@ name: Merge Validator
 
 on:
   pull_request:
-    branches: [develop, main]
+    branches: [ develop ]
     paths-ignore:
       - '.github/**'
       - '**.md'
@@ -17,53 +17,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  spb-guard:
-    name: Prebuilt SPB up to date
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-        with:
-          fetch-depth: 0
-
-      - name: Fail if the panel XML changed without the prebuilt SPB
-        env:
-          BASE: ${{ github.event.pull_request.base.sha }}
-        run: |
-          set -euo pipefail
-          changed="$(git diff --name-only "$BASE"...HEAD)"
-          if grep -qxF 'PackageSources/InGamePanels/gsx-integrator-commbus.xml' <<<"$changed" \
-            && ! grep -qxF 'tools/prebuilt/gsx-integrator-commbus.spb' <<<"$changed"; then
-            echo "::error::Panel XML changed but tools/prebuilt/gsx-integrator-commbus.spb was not updated. Rebuild locally with ./build.ps1 (without -NoSim) and copy Packages/gsx-integrator-commbus/InGamePanels/gsx-integrator-commbus.spb to tools/prebuilt/."
-            exit 1
-          fi
-
-  full-validation:
-    name: Build WASM + package (with SDK)
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.pull_request.head.repo.full_name == github.repository &&
-       !startsWith(github.event.pull_request.head.ref, 'release-please--'))
-    runs-on: windows-latest
-    timeout-minutes: 60
-    steps:
-      - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-
-      - name: Provision MSFS 2024 SDK
-        shell: pwsh
-        env:
-          MSFS_SDK_URL: ${{ secrets.MSFS_SDK_URL }}
-          MSFS_SDK_SHA256: ${{ secrets.MSFS_SDK_SHA256 }}
-        run: |
-          if ($env:MSFS_SDK_SHA256) {
-            ./tools/setup-msfs-sdk.ps1 -Url $env:MSFS_SDK_URL -Sha256 $env:MSFS_SDK_SHA256
-          } else {
-            ./tools/setup-msfs-sdk.ps1 -Url $env:MSFS_SDK_URL
-          }
-
-      - name: Build WASM + package (Release)
-        shell: pwsh
-        run: ./build.ps1 -Config Release -NoSim
+  validate:
+    uses: brunofgmag/gsx-integrator-ci/.github/workflows/merge-validator.yml@main
+    with:
+      runs-on: windows-latest
+      install-qt: false
+      run-tests: false
+    secrets: inherit

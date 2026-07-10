@@ -1,0 +1,12 @@
+name: PR Title Validator
+
+on:
+  pull_request:
+    types: [ opened, edited, synchronize ]
+    branches: [ develop, main ]
+
+permissions: { }
+
+jobs:
+  lint-title:
+    uses: brunofgmag/gsx-integrator-ci/.github/workflows/pr-title.yml@main

@@ -119,7 +119,7 @@ jobs:
 
       - name: Build
         shell: pwsh
-        run: ./build.ps1 -Config Release
+        run: ./build.ps1 -Config Release -NoSim
 
       - name: Package + Hash
         shell: pwsh

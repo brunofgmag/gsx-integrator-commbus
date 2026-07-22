@@ -3,11 +3,11 @@
 
 #include "Bridge.h"
 
-static GsxToolbarBridge* g_bridge = nullptr;
+static CommBusRouter* g_router = nullptr;
 
 static void OnFlowEvent(const FsFlowEvent event, const char*, unsigned int, void*)
 {
-    if (!g_bridge)
+    if (!g_router)
     {
         return;
     }
@@ -15,10 +15,10 @@ static void OnFlowEvent(const FsFlowEvent event, const char*, unsigned int, void
     switch (event)
     {
     case FsFlowEvent_FlightStart:
-        g_bridge->OnFlightStart();
+        g_router->OnFlightStart();
         break;
     case FsFlowEvent_FlightEnd:
-        g_bridge->OnFlightEnd();
+        g_router->OnFlightEnd();
         break;
     default:
         break;
@@ -27,18 +27,18 @@ static void OnFlowEvent(const FsFlowEvent event, const char*, unsigned int, void
 
 extern "C" MSFS_CALLBACK void module_init(void)
 {
-    g_bridge = new GsxToolbarBridge();
-    g_bridge->Setup();
+    g_router = new CommBusRouter();
+    g_router->Setup();
     fsFlowRegister(OnFlowEvent, nullptr);
 }
 
 extern "C" MSFS_CALLBACK void module_deinit(void)
 {
     fsFlowUnregister(OnFlowEvent);
-    if (g_bridge)
+    if (g_router)
     {
-        g_bridge->Shutdown();
-        delete g_bridge;
-        g_bridge = nullptr;
+        g_router->Shutdown();
+        delete g_router;
+        g_router = nullptr;
     }
 }

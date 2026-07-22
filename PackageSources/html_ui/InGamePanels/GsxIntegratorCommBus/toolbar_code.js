@@ -15,10 +15,16 @@
 	const GSX_PANEL_ID = "PANEL_FSDT_GSX_PANEL";
 	const CMD_EVENT = "GSXI.Toolbar.Command";
 	const STATE_EVENT = "GSXI.Toolbar.State";
+	const JS_SUBSCRIBE_EVENT = "GSXI.Bridge.JsSubscribe";
+	const JS_RELAY_EVENT = "GSXI.Bridge.JsRelay";
+	const JS_HELLO_EVENT = "GSXI.Bridge.JsHello";
 
 	let listener = null;
+	const relayedChannels = new Set();
 
 	const log = (...args) => console.log("[GSXI CommBus][toolbar]", ...args);
+	const warn = (...args) => console.warn("[GSXI CommBus][toolbar]", ...args);
+	const error = (...args) => console.error("[GSXI CommBus][toolbar]", ...args);
 
 	const getToolbar = () =>
 		document.querySelector("ui-panel") || document.querySelector("tool-bar");
@@ -70,7 +76,7 @@
 			listener.callWasm(STATE_EVENT, String(state));
 			log("state ->", state);
 		} else {
-			console.warn("[GSXI CommBus][toolbar] cannot send state (listener has no callWasm):", state);
+			warn("cannot send state (listener has no callWasm):", state);
 		}
 	};
 
@@ -83,14 +89,12 @@
 		try {
 			await Coherent.call("TOOLBAR_BUTTON_TOGGLE", GSX_PANEL_ID, cmd === "open");
 			setTimeout(() => sendState(readGsxState()), 500);
-		} catch (error) {
-			console.error("[GSXI CommBus][toolbar] TOOLBAR_BUTTON_TOGGLE failed", error);
+		} catch (err) {
+			error("TOOLBAR_BUTTON_TOGGLE failed", err);
 			sendState("unavailable");
 		}
 	};
 
-	// Report GSX state changes triggered by the user clicking the GSX icon too,
-	// so the LVar stays accurate regardless of who toggled it.
 	const attachGsxClickWatcher = () => {
 		const btn = findGsxButton();
 		if (!btn || btn.__gsxiWatched) {
@@ -112,11 +116,29 @@
 			? RegisterCommBusListener
 			: (callback) => RegisterViewListener("JS_LISTENER_COMM_BUS", callback);
 
+		const relaySubscribe = (channel) => {
+			const name = String(channel || "").trim();
+			if (!name || relayedChannels.has(name)) {
+				return;
+			}
+			relayedChannels.add(name);
+			listener.on(name, (payload) => {
+				if (typeof listener.callWasm === "function") {
+					listener.callWasm(JS_RELAY_EVENT, JSON.stringify({ channel: name, payload: String(payload || "") }));
+				}
+			});
+			log("relaying JS channel", name);
+		};
+
 		listener = register(() => {
 			listener.on(CMD_EVENT, handleCommand);
+			listener.on(JS_SUBSCRIBE_EVENT, relaySubscribe);
 			const canSend = typeof listener.callWasm === "function";
 			if (!canSend) {
-				console.warn("[GSXI CommBus][toolbar] listener has no callWasm(); state will NOT reach the WASM (CommBus.js missing?).");
+				warn("listener has no callWasm(); state will NOT reach the WASM (CommBus.js missing?).");
+			}
+			if (canSend) {
+				listener.callWasm(JS_HELLO_EVENT, "ready");
 			}
 			sendState("ready");
 			log("CommBus listener ready (callWasm=" + canSend + ")");
@@ -128,7 +150,6 @@
 			finishRegister();
 			return;
 		}
-		// Load the CommBus service first so we get callWasm().
 		const existing = document.head.querySelector('script[src="' + COMMBUS_JS + '"]');
 		if (existing) {
 			existing.addEventListener("load", finishRegister, { once: true });
@@ -140,14 +161,13 @@
 		script.async = false;
 		script.addEventListener("load", finishRegister, { once: true });
 		script.addEventListener("error", () => {
-			console.warn("[GSXI CommBus][toolbar] failed to load CommBus.js; falling back to view listener (no callWasm).");
+			warn("failed to load CommBus.js; falling back to view listener (no callWasm).");
 			finishRegister();
 		}, { once: true });
 		document.head.appendChild(script);
 	};
 
 	const init = () => {
-		// Wait until the toolbar DOM exists so we can hide our own button.
 		if (!hideOwnButton()) {
 			setTimeout(init, 1000);
 			return;

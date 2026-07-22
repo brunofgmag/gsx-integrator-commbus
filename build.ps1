@@ -8,21 +8,14 @@ param(
 $ErrorActionPreference = 'Stop'
 $Root = $PSScriptRoot
 
-# ---------------------------------------------------------------------------
-# Resolve the MSFS 2024 SDK
-# ---------------------------------------------------------------------------
 if (-not $SdkRoot) {
     $SdkRoot = if ($env:MSFS2024_SDK) { $env:MSFS2024_SDK } else { $env:MSFS_SDK }
 }
 if (-not $SdkRoot) {
     throw 'MSFS 2024 SDK not found. Set MSFS2024_SDK or pass -SdkRoot <path>.'
 }
-# Make sure the CMake toolchain sees the SDK.
 $env:MSFS2024_SDK = $SdkRoot
 
-# ---------------------------------------------------------------------------
-# 1) Build the WASM module (CMake + Ninja + wasi-msfs toolchain)
-# ---------------------------------------------------------------------------
 $cmakeCommand = Get-Command cmake -ErrorAction SilentlyContinue
 if ($cmakeCommand) {
     $cmake = $cmakeCommand.Source
@@ -51,11 +44,8 @@ if (-not (Test-Path -LiteralPath $Wasm)) {
 }
 Write-Host "==> WASM built: $Wasm" -ForegroundColor Green
 
-# ---------------------------------------------------------------------------
-# 2) Assemble the package
-#    Default: fspackagetool (compiles SPB, copies html_ui + modules).
-#    -NoSim: copy files + prebuilt SPB and generate manifest.json/layout.json
-# ---------------------------------------------------------------------------
+# Default: fspackagetool (compiles SPB, copies html_ui + modules).
+# -NoSim: copy files + prebuilt SPB and generate manifest.json/layout.json
 $Output = Join-Path $Root 'Packages\gsx-integrator-commbus'
 
 if ($NoSim) {

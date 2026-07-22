@@ -39,6 +39,8 @@ add_executable(${MODULE_NAME}
         src/Main.cpp
         src/Bridge.cpp
         src/Bridge.h
+        src/Json.cpp
+        src/Json.h
         src/Logger.h
 )
 

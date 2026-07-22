@@ -8,6 +8,11 @@ param(
 $ErrorActionPreference = 'Stop'
 $Root = $PSScriptRoot
 
+$Version = (Get-Content -LiteralPath (Join-Path $Root 'VERSION.txt') -Raw).Trim()
+if ($Version -notmatch '^\d+\.\d+\.\d+$') {
+    throw "VERSION.txt must be MAJOR.MINOR.PATCH (got '$Version')."
+}
+
 if (-not $SdkRoot) {
     $SdkRoot = if ($env:MSFS2024_SDK) { $env:MSFS2024_SDK } else { $env:MSFS_SDK }
 }
@@ -79,7 +84,7 @@ if ($NoSim) {
         title                         = $Def.AssetPackage.ItemSettings.Title
         manufacturer                  = $Def.AssetPackage.ItemSettings.Manufacturer
         creator                       = $Def.AssetPackage.ItemSettings.Creator
-        package_version               = $Def.AssetPackage.Version
+        package_version               = $Version
         minimum_game_version          = '1.7.35'
         minimum_compatibility_version = '7.26.0.214'
         export_type                   = 'Community'

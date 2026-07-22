@@ -23,4 +23,5 @@ jobs:
       runs-on: windows-latest
       install-qt: false
       run-tests: false
+      no-sim: true
     secrets: inherit

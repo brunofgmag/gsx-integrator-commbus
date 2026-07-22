@@ -1,215 +1,456 @@
 #include "Bridge.h"
 
+#include <algorithm>
+#include <cstddef>
 #include <cstring>
 #include <string>
 
 #include <SimConnect.h>
 #include <MSFS/MSFS_CommBus.h>
 
+#include "Json.h"
 #include "Logger.h"
 
 namespace
 {
-    constexpr char kLVarCmd[] = "L:GSXI_TOOLBAR_CMD";
-    constexpr char kLVarState[] = "L:GSXI_TOOLBAR_STATE";
-    constexpr char kLVarActive[] = "L:GSXI_GSX_TOOLBAR_ACTIVE";
-    constexpr char kUnitNumber[] = "Number";
+    constexpr char kTxAreaName[] = "GSXI.CommBus.Tx";
+    constexpr char kRxAreaName[] = "GSXI.CommBus.Rx";
+    constexpr DWORD kAreaSize = 8192;
 
-    constexpr char kEventCommand[] = "GSXI.Toolbar.Command";
-    constexpr char kEventState[] = "GSXI.Toolbar.State";
+    constexpr char kReadyAreaName[] = "GSXI.CommBus.Ready";
+    constexpr int kProtocolVersion = 2;
+
+    constexpr char kJsSubscribeChannel[] = "GSXI.Bridge.JsSubscribe";
+    constexpr char kJsRelayChannel[] = "GSXI.Bridge.JsRelay";
+    constexpr char kJsHelloChannel[] = "GSXI.Bridge.JsHello";
+    constexpr int kFlagJs = 1;
+
+    std::string BuildRxEnvelope(const std::string& channel, const std::string& payload)
+    {
+        std::string envelope = "{\"channel\":\"";
+        envelope += json::Escape(channel);
+        envelope += "\",\"payload\":\"";
+        envelope += json::Escape(payload);
+        envelope += "\"}";
+
+        return envelope;
+    }
+
+    enum class Command { Call, Subscribe, Unsubscribe, Unknown };
+
+    Command ParseCommand(const std::string& cmd)
+    {
+        if (cmd == "call")
+        {
+            return Command::Call;
+        }
+        if (cmd == "subscribe")
+        {
+            return Command::Subscribe;
+        }
+        if (cmd == "unsubscribe")
+        {
+            return Command::Unsubscribe;
+        }
+
+        return Command::Unknown;
+    }
 }
 
-void GsxToolbarBridge::Setup()
+void CommBusRouter::Setup()
+{
+    if (!OpenConnection())
+    {
+        return;
+    }
+
+    CreateDataAreas();
+    PublishReady();
+    RegisterRelayChannels();
+
+    (void)SimConnect_CallDispatch(hSimConnect_, &CommBusRouter::DispatchTrampoline, this);
+
+    LOG_INFO("GSX CommBus router ready (protocol %d)", static_cast<int>(kProtocolVersion));
+}
+
+bool CommBusRouter::OpenConnection()
 {
     if (const HRESULT hr = SimConnect_Open(&hSimConnect_, "GsxIntegratorCommBus", nullptr, 0, 0, 0);
         !SUCCEEDED(hr))
     {
         hSimConnect_ = 0;
+
         LOG_ERROR("SimConnect_Open failed (0x%08X)", static_cast<unsigned>(hr));
-        return;
+
+        return false;
     }
 
-    SimConnect_AddToDataDefinition(hSimConnect_, DEF_CMD, kLVarCmd, kUnitNumber, SIMCONNECT_DATATYPE_FLOAT64);
-    SimConnect_AddToDataDefinition(hSimConnect_, DEF_STATE, kLVarState, kUnitNumber, SIMCONNECT_DATATYPE_FLOAT64);
-    SimConnect_AddToDataDefinition(hSimConnect_, DEF_ACTIVE, kLVarActive, kUnitNumber, SIMCONNECT_DATATYPE_FLOAT64);
-
-    commBusRegistered_ = fsCommBusRegister(kEventState, &GsxToolbarBridge::CommBusStateTrampoline, this);
-    if (commBusRegistered_)
-    {
-        LOG_INFO("Registered CommBus event %s", kEventState);
-    }
-    else
-    {
-        LOG_WARN("fsCommBusRegister(%s) failed", kEventState);
-    }
-
-    SimConnect_RequestDataOnSimObject(hSimConnect_, REQ_CMD, DEF_CMD, SIMCONNECT_OBJECT_ID_USER,
-                                      SIMCONNECT_PERIOD_SIM_FRAME,
-                                      SIMCONNECT_DATA_REQUEST_FLAG_CHANGED, 0, 0, 0);
-
-    SimConnect_CallDispatch(hSimConnect_, &GsxToolbarBridge::DispatchTrampoline, this);
-
-    WriteLVars(0.0, 0.0);
-    LOG_INFO("GSX CommBus bridge ready (waiting for flight start)");
+    return true;
 }
 
-void GsxToolbarBridge::Shutdown()
+void CommBusRouter::CreateDataAreas() const
 {
-    if (commBusRegistered_)
-    {
-        fsCommBusUnregisterOneEvent(kEventState, &GsxToolbarBridge::CommBusStateTrampoline, this);
-        commBusRegistered_ = false;
-    }
+    (void)SimConnect_MapClientDataNameToID(hSimConnect_, kTxAreaName, DATA_TX);
+    (void)SimConnect_CreateClientData(hSimConnect_, DATA_TX, kAreaSize, SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
+    (void)SimConnect_MapClientDataNameToID(hSimConnect_, kRxAreaName, DATA_RX);
+    (void)SimConnect_CreateClientData(hSimConnect_, DATA_RX, kAreaSize, SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
+
+    (void)SimConnect_AddToClientDataDefinition(hSimConnect_, DEF_TX, 0, kAreaSize, 0, 0);
+    (void)SimConnect_AddToClientDataDefinition(hSimConnect_, DEF_RX, 0, kAreaSize, 0, 0);
+
+    (void)SimConnect_RequestClientData(hSimConnect_, DATA_TX, REQ_TX, DEF_TX,
+                                       SIMCONNECT_CLIENT_DATA_PERIOD_ON_SET,
+                                       SIMCONNECT_CLIENT_DATA_REQUEST_FLAG_DEFAULT, 0, 0, 0);
+
+    (void)SimConnect_MapClientDataNameToID(hSimConnect_, kReadyAreaName, DATA_READY);
+    (void)SimConnect_CreateClientData(hSimConnect_, DATA_READY, kAreaSize,
+                                      SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
+    (void)SimConnect_AddToClientDataDefinition(hSimConnect_, DEF_READY, 0, kAreaSize, 0, 0);
+}
+
+void CommBusRouter::RegisterRelayChannels()
+{
+    fsCommBusRegister(kJsRelayChannel, &CommBusRouter::JsRelayTrampoline, this);
+    fsCommBusRegister(kJsHelloChannel, &CommBusRouter::JsHelloTrampoline, this);
+}
+
+void CommBusRouter::Shutdown()
+{
+    fsCommBusUnregisterAll();
+    registrations_.clear();
+    lastMessage_.clear();
 
     if (hSimConnect_ != 0)
     {
-        double zero = 0.0;
-        SimConnect_SetDataOnSimObject(hSimConnect_, DEF_CMD, SIMCONNECT_OBJECT_ID_USER, 0, 0, sizeof(double), &zero);
-        SimConnect_Close(hSimConnect_);
+        (void)SimConnect_Close(hSimConnect_);
         hSimConnect_ = 0;
     }
 
-    bridgeReady_ = false;
-    toolbarOpen_ = false;
+    sessionActive_ = false;
 }
 
-void GsxToolbarBridge::OnFlightStart()
+void CommBusRouter::OnFlightStart()
 {
     sessionActive_ = true;
-    LOG_INFO("Flight start (Ready to Fly) — command handling enabled");
-    PublishState();
+
+    PublishReady();
+
+    LOG_INFO("Flight start (Ready to Fly)");
 }
 
-void GsxToolbarBridge::OnFlightEnd()
+void CommBusRouter::OnFlightEnd()
 {
     sessionActive_ = false;
-    toolbarOpen_ = false;
-    bridgeReady_ = true;
-    LOG_INFO("Flight end (returned to menu) — reset STATE=1, ACTIVE=0");
-    WriteLVars(1.0, 0.0);
+
+    lastMessage_.clear();
+
+    LOG_INFO("Flight end (returned to menu) — cleared last-message cache");
 }
 
-void GsxToolbarBridge::HandleTick(const double cmd)
-{
-    if (!sessionActive_)
-    {
-        return;
-    }
-
-    if (const int c = static_cast<int>(cmd); c == 1 || c == 2)
-    {
-        double zero = 0.0;
-        SimConnect_SetDataOnSimObject(hSimConnect_, DEF_CMD, SIMCONNECT_OBJECT_ID_USER, 0, 0, sizeof(double), &zero);
-        SendCommand(c == 1 ? "open" : "close");
-    }
-
-    PublishState();
-}
-
-void GsxToolbarBridge::SendCommand(const char* command)
-{
-    const bool sent = fsCommBusCall(kEventCommand, command,
-                                    static_cast<unsigned int>(std::strlen(command) + 1),
-                                    FsCommBusBroadcast_JS);
-    if (!sent)
-    {
-        LOG_WARN("fsCommBusCall(%s, %s) failed", kEventCommand, command);
-    }
-}
-
-void GsxToolbarBridge::PublishState()
-{
-    if (!sessionActive_)
-    {
-        return;
-    }
-
-    const double state = !bridgeReady_ ? 0.0 : (toolbarOpen_ ? 2.0 : 1.0);
-    const double active = toolbarOpen_ ? 1.0 : 0.0;
-    WriteLVars(state, active);
-}
-
-void GsxToolbarBridge::WriteLVars(double state, double active)
+void CommBusRouter::PublishReady() const
 {
     if (hSimConnect_ == 0)
     {
         return;
     }
 
-    SimConnect_SetDataOnSimObject(hSimConnect_, DEF_STATE, SIMCONNECT_OBJECT_ID_USER, 0, 0, sizeof(double), &state);
-    SimConnect_SetDataOnSimObject(hSimConnect_, DEF_ACTIVE, SIMCONNECT_OBJECT_ID_USER, 0, 0, sizeof(double), &active);
+    char buffer[kAreaSize] = {};
+    constexpr double value = kProtocolVersion;
+    std::memcpy(buffer, &value, sizeof(double));
+
+    (void)SimConnect_SetClientData(hSimConnect_,
+                                   DATA_READY,
+                                   DEF_READY,
+                                   SIMCONNECT_CLIENT_DATA_SET_FLAG_DEFAULT,
+                                   0,
+                                   kAreaSize,
+                                   buffer);
 }
 
-void GsxToolbarBridge::OnState(const char* state)
+void CommBusRouter::OnTxEnvelope(const char* data, const unsigned int size)
 {
-    if (!state)
+    if (data == nullptr || size == 0)
     {
         return;
     }
 
-    LOG_INFO("OnState received from JS: %s", state);
+    const std::size_t length = strnlen(data, size);
+    const std::string text(data, length);
 
-    if (std::strcmp(state, "ready") == 0)
+    std::string cmd;
+    std::string channel;
+    if (!json::ExtractString(text, "cmd", cmd) || !json::ExtractString(text, "channel", channel) || channel.empty())
     {
-        bridgeReady_ = true;
-    }
-    else if (std::strcmp(state, "open") == 0)
-    {
-        bridgeReady_ = true;
-        toolbarOpen_ = true;
-    }
-    else if (std::strcmp(state, "closed") == 0)
-    {
-        bridgeReady_ = true;
-        toolbarOpen_ = false;
-    }
-    else if (std::strcmp(state, "unavailable") == 0)
-    {
-        toolbarOpen_ = false;
-        LOG_WARN("Companion JS reported GSX toolbar unavailable");
+        LOG_WARN("Dropping malformed CommBus envelope");
+        return;
     }
 
-    PublishState();
+    switch (ParseCommand(cmd))
+    {
+    case Command::Call:
+        {
+            int flag = 0;
+            std::string payload;
+            json::ExtractInt(text, "flag", flag);
+            json::ExtractString(text, "payload", payload);
+            HandleCall(channel, flag, payload);
+            break;
+        }
+    case Command::Subscribe:
+        {
+            int flag = 0;
+            json::ExtractInt(text, "flag", flag);
+            HandleSubscribe(channel, flag);
+            break;
+        }
+    case Command::Unsubscribe:
+        HandleUnsubscribe(channel);
+        break;
+    case Command::Unknown:
+        LOG_WARN("Unknown CommBus command '%s'", cmd.c_str());
+        break;
+    }
 }
 
-void CALLBACK GsxToolbarBridge::DispatchTrampoline(SIMCONNECT_RECV* pData, const DWORD cbData, void* ctx)
+void CommBusRouter::HandleCall(const std::string& channel, const int flag, const std::string& payload)
 {
-    auto* self = static_cast<GsxToolbarBridge*>(ctx);
+    const auto broadcast = static_cast<FsCommBusBroadcastFlags>(flag != 0 ? flag : FsCommBusBroadcast_Default);
+    const bool sent = fsCommBusCall(channel.c_str(),
+                                    payload.c_str(),
+                                    static_cast<unsigned int>(payload.size() + 1),
+                                    broadcast);
+    if (!sent)
+    {
+        LOG_WARN("fsCommBusCall(%s) failed", channel.c_str());
+    }
+}
+
+void CommBusRouter::HandleSubscribe(const std::string& channel, const int flag)
+{
+    if (flag == kFlagJs)
+    {
+        RegisterJsChannel(channel);
+        ReplayLastMessage(channel);
+
+        return;
+    }
+
+    if (RegisterWasmChannel(channel))
+    {
+        ReplayLastMessage(channel);
+    }
+}
+
+void CommBusRouter::RegisterJsChannel(const std::string& channel)
+{
+    const bool known = std::find(jsChannels_.begin(), jsChannels_.end(), channel) != jsChannels_.end();
+    if (!known)
+    {
+        jsChannels_.push_back(channel);
+    }
+
+    SendJsSubscribe(channel);
+}
+
+bool CommBusRouter::RegisterWasmChannel(const std::string& channel)
+{
+    for (const auto& registration : registrations_)
+    {
+        if (registration->channel == channel)
+        {
+            return true;
+        }
+    }
+
+    auto registration = std::make_unique<Registration>();
+    registration->channel = channel;
+    registration->self = this;
+
+    if (!fsCommBusRegister(channel.c_str(), &CommBusRouter::CommBusTrampoline, registration.get()))
+    {
+        LOG_WARN("fsCommBusRegister(%s) failed", channel.c_str());
+        return false;
+    }
+
+    LOG_INFO("Registered CommBus channel %s", channel.c_str());
+    registrations_.push_back(std::move(registration));
+
+    return true;
+}
+
+void CommBusRouter::ReplayLastMessage(const std::string& channel) const
+{
+    const auto cached = lastMessage_.find(channel);
+    if (cached != lastMessage_.end())
+    {
+        WriteRx(channel, cached->second);
+    }
+}
+
+void CommBusRouter::HandleUnsubscribe(const std::string& channel)
+{
+    const auto jsIt = std::find(jsChannels_.begin(), jsChannels_.end(), channel);
+    if (jsIt != jsChannels_.end())
+    {
+        jsChannels_.erase(jsIt);
+        LOG_INFO("Unregistered JS CommBus channel %s (panel keeps listening)", channel.c_str());
+
+        return;
+    }
+
+    for (auto it = registrations_.begin(); it != registrations_.end(); ++it)
+    {
+        if ((*it)->channel == channel)
+        {
+            fsCommBusUnregisterOneEvent(channel.c_str(), &CommBusRouter::CommBusTrampoline, it->get());
+            registrations_.erase(it);
+            LOG_INFO("Unregistered CommBus channel %s", channel.c_str());
+
+            return;
+        }
+    }
+}
+
+void CommBusRouter::OnChannelMessage(const std::string& channel, const char* buffer, const unsigned int size)
+{
+    const std::size_t length = strnlen(buffer, size);
+    CacheAndDeliver(channel, std::string(buffer, length));
+}
+
+void CommBusRouter::CacheAndDeliver(const std::string& channel, const std::string& payload)
+{
+    lastMessage_[channel] = payload;
+    WriteRx(channel, payload);
+}
+
+void CommBusRouter::SendJsSubscribe(const std::string& channel)
+{
+    if (!fsCommBusCall(kJsSubscribeChannel, channel.c_str(),
+                       static_cast<unsigned int>(channel.size() + 1), FsCommBusBroadcast_JS))
+    {
+        LOG_WARN("fsCommBusCall(%s) failed for %s", kJsSubscribeChannel, channel.c_str());
+    }
+    else
+    {
+        LOG_INFO("Forwarded JS subscription for %s to the panel", channel.c_str());
+    }
+}
+
+void CommBusRouter::ResendJsSubscriptions()
+{
+    for (const auto& channel : jsChannels_)
+    {
+        SendJsSubscribe(channel);
+    }
+}
+
+void CommBusRouter::OnJsRelay(const char* buffer, const unsigned int size)
+{
+    if (buffer == nullptr || size == 0)
+    {
+        return;
+    }
+
+    const std::size_t length = strnlen(buffer, size);
+    const std::string text(buffer, length);
+
+    std::string channel;
+    std::string payload;
+    if (!json::ExtractString(text, "channel", channel) || channel.empty()
+        || !json::ExtractString(text, "payload", payload))
+    {
+        LOG_WARN("Dropping malformed JS relay envelope");
+        return;
+    }
+
+    CacheAndDeliver(channel, payload);
+}
+
+void CommBusRouter::WriteRx(const std::string& channel, const std::string& payload) const
+{
+    if (hSimConnect_ == 0)
+    {
+        return;
+    }
+
+    const std::string envelope = BuildRxEnvelope(channel, payload);
+    if (envelope.size() > kAreaSize - 1)
+    {
+        LOG_WARN("Dropping oversize relay for %s (%u bytes)", channel.c_str(),
+                 static_cast<unsigned>(envelope.size()));
+
+        return;
+    }
+
+    char buffer[kAreaSize] = {};
+    std::memcpy(buffer, envelope.data(), envelope.size());
+
+    (void)SimConnect_SetClientData(hSimConnect_, DATA_RX, DEF_RX, SIMCONNECT_CLIENT_DATA_SET_FLAG_DEFAULT, 0,
+                                   kAreaSize, buffer);
+}
+
+void CALLBACK CommBusRouter::DispatchTrampoline(SIMCONNECT_RECV* pData, const DWORD cbData, void* ctx)
+{
+    auto* self = static_cast<CommBusRouter*>(ctx);
     if (!self || !pData)
     {
         return;
     }
 
-    if (pData->dwID == SIMCONNECT_RECV_ID_SIMOBJECT_DATA)
+    if (pData->dwID == SIMCONNECT_RECV_ID_EXCEPTION)
     {
-        if (cbData < sizeof(SIMCONNECT_RECV_SIMOBJECT_DATA))
+        const auto* ex = reinterpret_cast<const SIMCONNECT_RECV_EXCEPTION*>(pData);
+        LOG_WARN("SimConnect exception %u (sendId=%u)", static_cast<unsigned>(ex->dwException),
+                 static_cast<unsigned>(ex->dwSendID));
+
+        return;
+    }
+
+    if (pData->dwID == SIMCONNECT_RECV_ID_CLIENT_DATA)
+    {
+        if (cbData < sizeof(SIMCONNECT_RECV_CLIENT_DATA))
         {
             return;
         }
 
-        const auto* data = reinterpret_cast<SIMCONNECT_RECV_SIMOBJECT_DATA*>(pData);
-        if (data->dwRequestID == REQ_CMD)
+        const auto* data = reinterpret_cast<SIMCONNECT_RECV_CLIENT_DATA*>(pData);
+        if (data->dwRequestID == REQ_TX)
         {
-            double cmd = 0.0;
-            std::memcpy(&cmd, &data->dwData, sizeof(double));
-            self->HandleTick(cmd);
+            const DWORD payloadSize = cbData - offsetof(SIMCONNECT_RECV_CLIENT_DATA, dwData);
+            self->OnTxEnvelope(reinterpret_cast<const char*>(&data->dwData), payloadSize);
         }
     }
 }
 
-void GsxToolbarBridge::CommBusStateTrampoline(const char* buffer, const unsigned int size, void* ctx)
+void CommBusRouter::CommBusTrampoline(const char* buffer, const unsigned int size, void* ctx)
 {
-    auto* self = static_cast<GsxToolbarBridge*>(ctx);
-    if (!self || !buffer || size == 0)
+    const auto* registration = static_cast<Registration*>(ctx);
+    if (!registration || !registration->self || !buffer)
     {
         return;
     }
 
-    std::string state(buffer, size);
-    if (!state.empty() && state.back() == '\0')
+    registration->self->OnChannelMessage(registration->channel, buffer, size);
+}
+
+void CommBusRouter::JsRelayTrampoline(const char* buffer, const unsigned int size, void* ctx)
+{
+    if (auto* self = static_cast<CommBusRouter*>(ctx); self != nullptr)
     {
-        state.pop_back();
+        self->OnJsRelay(buffer, size);
+    }
+}
+
+void CommBusRouter::JsHelloTrampoline(const char*, const unsigned int, void* ctx)
+{
+    auto* self = static_cast<CommBusRouter*>(ctx);
+    if (self == nullptr)
+    {
+        return;
     }
 
-    self->OnState(state.c_str());
+    LOG_INFO("JS panel announced ready; re-sending %u JS subscriptions",
+             static_cast<unsigned>(self->jsChannels_.size()));
+
+    self->ResendJsSubscriptions();
 }

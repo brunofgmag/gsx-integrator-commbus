@@ -4,7 +4,6 @@
     ".": {
       "release-type": "simple",
       "package-name": "gsx-integrator-commbus",
-      "skip-github-release": true,
       "include-component-in-tag": false,
       "include-v-in-tag": true,
       "version-file": "VERSION.txt"

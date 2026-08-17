@@ -159,43 +159,15 @@ jobs:
         with:
           name: release-bundle
 
-      - name: Extract release notes
-        id: notes
+      - name: Upload assets
         env:
-          VER: ${{ needs.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          out=release-notes.md
-          if [ -f CHANGELOG.md ]; then
-            awk -v v="$VER" '
-              $0 ~ "^## \\["v"\\]" {f=1; next}
-              f && /^## / {exit}
-              f {print}
-            ' CHANGELOG.md > "$out"
-          fi
-          [ -s "$out" ] || echo "Release v$VER" > "$out"
-          echo "path=$out" >> "$GITHUB_OUTPUT"
-
-      - name: Create tag
-        env:
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.version.outputs.tag }}
         run: |
           set -euo pipefail
-          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            echo "::notice::Tag $TAG already exists; reusing it."
-          else
-            git config user.name 'github-actions[bot]'
-            git config user.email 'github-actions[bot]@users.noreply.github.com'
-            git tag -a "$TAG" -m "Release $TAG"
-            git push origin "$TAG"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Release $TAG does not exist; release-please publishes it when the release PR merges."
+            exit 1
           fi
-
-      - name: Publish
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
-        with:
-          tag_name: ${{ needs.version.outputs.tag }}
-          name: gsx-integrator-commbus ${{ needs.version.outputs.tag }}
-          body_path: ${{ steps.notes.outputs.path }}
-          files: |
-            gsx-integrator-commbus-${{ needs.version.outputs.version }}.zip
-            gsx-integrator-commbus-${{ needs.version.outputs.version }}.zip.sha256
+          gh release upload "$TAG" gsx-integrator-commbus-${{ needs.version.outputs.version }}.zip --clobber
+          gh release upload "$TAG" gsx-integrator-commbus-${{ needs.version.outputs.version }}.zip.sha256 --clobber

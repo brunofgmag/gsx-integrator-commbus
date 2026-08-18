@@ -1,0 +1,17 @@
+name: PR Changelog
+
+on:
+  pull_request_target:
+    types: [ opened, synchronize, reopened ]
+    branches: [ develop ]
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: pr-changelog-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  commit-override:
+    uses: brunofgmag/gsx-integrator-ci/.github/workflows/pr-changelog.yml@main

@@ -159,15 +159,30 @@ jobs:
         with:
           name: release-bundle
 
-      - name: Upload assets
+      - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.version.outputs.tag }}
+          VER: ${{ needs.version.outputs.version }}
+          SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            echo "::error::Release $TAG does not exist; release-please publishes it when the release PR merges."
+          zip="gsx-integrator-commbus-$VER.zip"
+
+          awk -v hdr="## [$VER]" '
+            index($0, hdr) == 1 { inside = 1 }
+            inside && index($0, "## [") == 1 && seen { exit }
+            inside { seen = 1; a[++n] = $0; if ($0 != "") last = n }
+            END { for (i = 1; i <= last; i++) print a[i] }
+          ' CHANGELOG.md > notes.md
+
+          if [ ! -s notes.md ]; then
+            echo "::error::CHANGELOG.md carries no section for $VER"
             exit 1
           fi
-          gh release upload "$TAG" gsx-integrator-commbus-${{ needs.version.outputs.version }}.zip --clobber
-          gh release upload "$TAG" gsx-integrator-commbus-${{ needs.version.outputs.version }}.zip.sha256 --clobber
+
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --target "$SHA" --title "$TAG" --notes-file notes.md
+          fi
+
+          gh release upload "$TAG" "$zip" "$zip.sha256" --clobber

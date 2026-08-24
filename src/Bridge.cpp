@@ -25,9 +25,12 @@ namespace
     constexpr char kJsHelloChannel[] = "GSXI.Bridge.JsHello";
     constexpr int kFlagJs = 1;
 
-    std::string BuildRxEnvelope(const std::string& channel, const std::string& payload)
+    std::string BuildRxEnvelope(const std::string& channel, const std::string& payload,
+                                const unsigned long sequence)
     {
-        std::string envelope = "{\"channel\":\"";
+        std::string envelope = "{\"seq\":";
+        envelope += std::to_string(sequence);
+        envelope += ",\"channel\":\"";
         envelope += json::Escape(channel);
         envelope += "\",\"payload\":\"";
         envelope += json::Escape(payload);
@@ -373,7 +376,7 @@ void CommBusRouter::WriteRx(const std::string& channel, const std::string& paylo
         return;
     }
 
-    const std::string envelope = BuildRxEnvelope(channel, payload);
+    const std::string envelope = BuildRxEnvelope(channel, payload, ++rxSequence_);
     if (envelope.size() > kAreaSize - 1)
     {
         LOG_WARN("Dropping oversize relay for %s (%u bytes)", channel.c_str(),

@@ -4,7 +4,8 @@ import { FSComponent, Subject } from "@microsoft/msfs-sdk";
 import type { VNode } from "@microsoft/msfs-sdk";
 
 import { clientChannel, COMMBUS_SERVICE, POLL_MS } from "./state/ClientChannel.ts";
-import { ConnectionPage } from "./Components/ConnectionPage.tsx";
+import { OperationsPage } from "./Components/OperationsPage.tsx";
+import type { ScreenModel } from "./state/screen.ts";
 
 import "./GsxIntegrator.scss";
 
@@ -22,17 +23,13 @@ async function loadOnce(load: () => Promise<void>): Promise<void> {
 }
 
 class GsxIntegratorView extends AppView<RequiredProps<AppViewProps, "bus">> {
-  private readonly statusText = Subject.create(clientChannel.current.statusText);
-  private readonly connected = Subject.create(clientChannel.current.connected);
+  private readonly model = Subject.create<ScreenModel>(clientChannel.current);
   private unsubscribe: (() => void) | null = null;
 
   public onAfterRender(node: VNode): void {
     super.onAfterRender(node);
 
-    this.unsubscribe = clientChannel.subscribe((model) => {
-      this.statusText.set(model.statusText);
-      this.connected.set(model.connected);
-    });
+    this.unsubscribe = clientChannel.subscribe((model) => this.model.set(model));
   }
 
   public destroy(): void {
@@ -44,7 +41,7 @@ class GsxIntegratorView extends AppView<RequiredProps<AppViewProps, "bus">> {
   public render(): VNode {
     return (
       <div class="gsx-integrator-app">
-        <ConnectionPage statusText={this.statusText} connected={this.connected} />
+        <OperationsPage model={this.model} />
       </div>
     );
   }

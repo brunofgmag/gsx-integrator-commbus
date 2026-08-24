@@ -50,6 +50,17 @@ test("an unchanged state does not wake the subscribers again", () => {
   assert.deepEqual(seen, [true]);
 });
 
+test("a payload whose numbers moved wakes the subscribers", () => {
+  const channel = new ClientChannel();
+  channel.accept('{"connected":true,"fuelCardLabel":"Fuel","fuelProgress":10,"fuelProgressText":"10%"}');
+
+  const seen: (number | null | undefined)[] = [];
+  channel.subscribe((model) => seen.push(model.cards[0]?.progress));
+  channel.accept('{"connected":true,"fuelCardLabel":"Fuel","fuelProgress":55,"fuelProgressText":"55%"}');
+
+  assert.deepEqual(seen, [10, 55]);
+});
+
 test("a malformed message leaves the app disconnected instead of throwing", () => {
   const channel = new ClientChannel();
   const warnings: unknown[] = [];

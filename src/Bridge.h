@@ -62,6 +62,7 @@ private:
     void SendJsSubscribe(const std::string& channel);
     void ResendJsSubscriptions();
     void WriteRx(const std::string& channel, const std::string& payload) const;
+    mutable unsigned long rxSequence_ = 0;
     void PublishReady() const;
 
     static void CALLBACK DispatchTrampoline(SIMCONNECT_RECV* pData, DWORD cbData, void* ctx);

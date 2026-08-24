@@ -105,17 +105,21 @@ jobs:
           ref: ${{ needs.version.outputs.build_ref }}
           fetch-depth: 0
 
-      - name: Provision MSFS 2024 SDK
-        shell: pwsh
-        env:
-          MSFS_SDK_URL: ${{ secrets.MSFS_SDK_URL }}
-          MSFS_SDK_SHA256: ${{ secrets.MSFS_SDK_SHA256 }}
-        run: |
-          if ($env:MSFS_SDK_SHA256) {
-            ./tools/setup-msfs-sdk.ps1 -Url $env:MSFS_SDK_URL -Sha256 $env:MSFS_SDK_SHA256
-          } else {
-            ./tools/setup-msfs-sdk.ps1 -Url $env:MSFS_SDK_URL
-          }
+      - name: Setup environment
+        uses: brunofgmag/gsx-integrator-ci/.github/actions/setup-build-env@main
+        with:
+          install-qt: false
+          sdk-url: ${{ secrets.MSFS_SDK_URL }}
+          sdk-sha256: ${{ secrets.MSFS_SDK_SHA256 }}
+          sdk-env-var: MSFS2024_SDK
+          # The WASM toolchain and the package tool build the module; the EFB sample
+          # carries the efb_api and the vendored msfs-sdk the EFB app is built against.
+          sdk-required-paths: |
+            WASM/llvm/bin/clang++.exe
+            WASM/wasi-sysroot
+            Tools/bin/fspackagetool.exe
+            Samples/DevmodeProjects/EFB/PackageSources/efb_api
+            Samples/DevmodeProjects/EFB/PackageSources/vendor
 
       - name: Build
         shell: pwsh

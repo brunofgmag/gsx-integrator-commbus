@@ -170,6 +170,17 @@ if (-not (Test-Path -LiteralPath $Output)) {
     throw "Expected package output was not created at $Output"
 }
 
+$ManifestPath = Join-Path $Output 'manifest.json'
+if (-not (Test-Path -LiteralPath $ManifestPath)) {
+    throw "Package manifest was not created at $ManifestPath"
+}
+$Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
+if ($Manifest.package_version -ne $Version) {
+    Write-Host "==> Stamping package_version: $($Manifest.package_version) -> $Version"
+    $Manifest.package_version = $Version
+    $Manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $ManifestPath -Encoding utf8NoBOM
+}
+
 # Safety net: ensure the WASM is present in the built package (in case the
 # 'modules' Copy asset group is not honored by the installed SDK version).
 $PackagedModules = Join-Path $Output 'modules'

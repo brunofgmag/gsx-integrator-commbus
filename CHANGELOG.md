@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.3.0...v0.4.0) (2026-08-24)
+
+
+### Features
+
+* **efb-app:** mirror the operations screen inside the EFB ([#17](https://github.com/brunofgmag/gsx-integrator-commbus/issues/17)) ([ea1e113](https://github.com/brunofgmag/gsx-integrator-commbus/commit/ea1e1136158421c8d675195cd834ce9ea11c6163))
+
 ## [0.3.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.2.1...v0.3.0) (2026-08-24)
 
 

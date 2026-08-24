@@ -46,7 +46,7 @@ test("the full payload yields every block of the screen", () => {
       ["Sim", "Connected", "ok"],
       ["GSX Pro", "Connected", "ok"],
       ["Aircraft", "PMDG 737-800", "text"],
-      ["Turnaround", "Auto", "accent"],
+      ["Turnaround", "Auto · On", "accent"],
       ["Loading", "Auto", "accent"],
     ],
   );

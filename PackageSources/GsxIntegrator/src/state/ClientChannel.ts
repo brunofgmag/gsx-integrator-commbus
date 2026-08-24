@@ -6,9 +6,6 @@ export const HELLO_CHANNEL = "GSXI.Efb.Hello";
 export const RELAY_CHANNEL = "GSXI.Bridge.JsRelay";
 export const COMMBUS_SERVICE = "/JS/Services/CommBus.js";
 
-// The transport carries no connection: nobody is told when the client dies,
-// and the client only publishes when its snapshot changes. So the app asks
-// whenever it has been left quiet, and takes silence for an answer.
 export const SILENCE_MS = 5000;
 export const ANSWER_DEADLINE_MS = 5000;
 export const POLL_MS = 1000;

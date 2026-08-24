@@ -59,6 +59,14 @@ if (-not $npm) {
     throw 'npm was not found. Install Node.js (18 or newer) to build the EFB app.'
 }
 
+# The shared merge-validator installs no Node, so whatever the runner ships is
+# what builds the app. Say so here instead of failing inside esbuild.
+$nodeVersion = (& node --version) -replace '^v', ''
+if ([version]($nodeVersion -split '-')[0] -lt [version]'18.0.0') {
+    throw "Node.js 18 or newer is required to build the EFB app; found $nodeVersion."
+}
+Write-Host "==> Node $nodeVersion"
+
 foreach ($dependency in @('efb_api', 'vendor')) {
     $source = Join-Path $EfbSdkSource $dependency
     if (-not (Test-Path -LiteralPath $source)) {
@@ -71,10 +79,18 @@ foreach ($dependency in @('efb_api', 'vendor')) {
 }
 
 Write-Host '==> Building EFB app'
-& npm.cmd install --prefix $EfbApp --no-audit --no-fund
-if ($LASTEXITCODE -ne 0) { throw "npm install failed (exit $LASTEXITCODE)." }
-& npm.cmd run build --prefix $EfbApp
-if ($LASTEXITCODE -ne 0) { throw "EFB app build failed (exit $LASTEXITCODE)." }
+# npm reads package.json from the working directory, not from --prefix, and a
+# stray package.json further up the tree is enough to make --prefix look right.
+Push-Location $EfbApp
+try {
+    & npm.cmd install --no-audit --no-fund
+    if ($LASTEXITCODE -ne 0) { throw "npm install failed (exit $LASTEXITCODE)." }
+    & npm.cmd run build
+    if ($LASTEXITCODE -ne 0) { throw "EFB app build failed (exit $LASTEXITCODE)." }
+}
+finally {
+    Pop-Location
+}
 
 $EfbAppEntry = Join-Path $EfbAppDist 'GsxIntegrator.js'
 if (-not (Test-Path -LiteralPath $EfbAppEntry)) {

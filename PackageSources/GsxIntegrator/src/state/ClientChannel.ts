@@ -1,5 +1,5 @@
-import { disconnectedModel, readConnection } from "./connection.ts";
-import type { ConnectionModel } from "./connection.ts";
+import { disconnectedScreen, readScreen } from "./screen.ts";
+import type { ScreenModel } from "./screen.ts";
 
 export const STATE_CHANNEL = "GSXI.Efb.State";
 export const HELLO_CHANNEL = "GSXI.Efb.Hello";
@@ -13,7 +13,7 @@ export const SILENCE_MS = 5000;
 export const ANSWER_DEADLINE_MS = 5000;
 export const POLL_MS = 1000;
 
-export type ConnectionListener = (model: ConnectionModel) => void;
+export type ScreenListener = (model: ScreenModel) => void;
 
 export interface CommBusListener {
   on(channel: string, handler: (payload: string) => void): void;
@@ -49,12 +49,14 @@ function simulatorListenerFactory(): ListenerFactory | undefined {
 }
 
 export class ClientChannel {
-  private model: ConnectionModel = disconnectedModel();
-  private readonly listeners = new Set<ConnectionListener>();
+  private model: ScreenModel = disconnectedScreen();
+  private readonly listeners = new Set<ScreenListener>();
   private started = false;
   private listener: CommBusListener | null = null;
   private lastHeardMs: number | null = null;
   private askedMs: number | null = null;
+  private lastRaw: string | null = null;
+  private subscribed = false;
 
   private readonly resolveFactory: () => ListenerFactory | undefined;
 
@@ -62,11 +64,11 @@ export class ClientChannel {
     this.resolveFactory = resolveFactory;
   }
 
-  public get current(): ConnectionModel {
+  public get current(): ScreenModel {
     return this.model;
   }
 
-  public subscribe(listener: ConnectionListener): () => void {
+  public subscribe(listener: ScreenListener): () => void {
     this.listeners.add(listener);
     listener(this.model);
 
@@ -79,12 +81,12 @@ export class ClientChannel {
     this.lastHeardMs = nowMs;
     this.askedMs = null;
 
-    const next = readConnection(raw);
+    const next = readScreen(raw);
     if (next.fault !== undefined) {
       warn(`dropping message on ${STATE_CHANNEL}:`, next.fault);
     }
 
-    this.publish(next);
+    this.publish(next, typeof raw === "string" ? raw : "");
   }
 
   public poll(nowMs: number): void {
@@ -96,7 +98,7 @@ export class ClientChannel {
       if (nowMs - this.askedMs >= ANSWER_DEADLINE_MS) {
         this.askedMs = null;
         this.lastHeardMs = nowMs;
-        this.publish(disconnectedModel());
+        this.publish(disconnectedScreen(), null);
       }
 
       return;
@@ -107,16 +109,27 @@ export class ClientChannel {
     }
   }
 
+  private listen(): void {
+    if (this.subscribed || this.listener === null) {
+      return;
+    }
+
+    this.subscribed = true;
+    this.listener.on(STATE_CHANNEL, (payload) => this.accept(payload));
+    log(`listening on ${STATE_CHANNEL}`);
+  }
+
   private ask(nowMs: number): void {
     this.askedMs = nowMs;
     this.sayHello();
   }
 
-  private publish(next: ConnectionModel): void {
-    if (next.connected === this.model.connected && next.statusText === this.model.statusText) {
+  private publish(next: ScreenModel, raw: string | null): void {
+    if (raw === this.lastRaw) {
       return;
     }
 
+    this.lastRaw = raw;
     this.model = next;
     for (const listener of this.listeners) {
       listener(next);
@@ -149,6 +162,7 @@ export class ClientChannel {
       warn(`failed to load ${COMMBUS_SERVICE}; falling back to the bare view listener.`, error);
     }
 
+
     const factory = this.resolveFactory();
     if (factory === undefined) {
       warn("no CommBus listener factory available; the app stays disconnected.");
@@ -156,10 +170,11 @@ export class ClientChannel {
     }
 
     this.listener = factory(() => {
-      this.listener?.on(STATE_CHANNEL, (payload) => this.accept(payload));
-      log(`listening on ${STATE_CHANNEL}`);
+      this.listen();
       this.ask(Date.now());
     });
+
+    this.listen();
   }
 }
 

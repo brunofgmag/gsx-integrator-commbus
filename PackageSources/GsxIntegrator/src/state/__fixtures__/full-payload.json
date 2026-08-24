@@ -76,6 +76,6 @@
   "targetZfwLabel": "Planned ZFW",
   "targetZfwText": "52.340 kg",
   "turnaroundModeLabel": "Turnaround",
-  "turnaroundModeText": "Auto",
+  "turnaroundModeText": "Auto · On",
   "turnaroundStateLabel": "Turnaround state"
 }

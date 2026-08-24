@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.4.0...v0.4.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **build:** stamp the packaged manifest with the version from VERSION.txt ([#19](https://github.com/brunofgmag/gsx-integrator-commbus/issues/19)) ([7e7bff0](https://github.com/brunofgmag/gsx-integrator-commbus/commit/7e7bff0f961969dd7da489a891d5d9185daebbb7))
+
 ## [0.4.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.3.0...v0.4.0) (2026-08-24)
 
 

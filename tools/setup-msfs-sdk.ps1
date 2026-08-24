@@ -30,12 +30,16 @@ if ($Sha256) {
 
 Expand-Archive -LiteralPath $archive -DestinationPath $sdkRoot
 
-# The commbus build needs the WASM toolchain (clang + wasi sysroot) and the
-# command-line package tool.
+# The commbus build needs the WASM toolchain (clang + wasi sysroot), the
+# command-line package tool, and the EFB sample, whose efb_api and vendored
+# msfs-sdk are what the EFB app is built against. The whole Samples tree is
+# 4.9 GB; these two folders are 3.3 MB of it.
 $requiredPaths = @(
     'WASM/llvm/bin/clang++.exe',
     'WASM/wasi-sysroot',
-    'Tools/bin/fspackagetool.exe'
+    'Tools/bin/fspackagetool.exe',
+    'Samples/DevmodeProjects/EFB/PackageSources/efb_api',
+    'Samples/DevmodeProjects/EFB/PackageSources/vendor'
 )
 $missing = $requiredPaths | Where-Object {
     -not (Test-Path -LiteralPath (Join-Path $sdkRoot $_))

@@ -1,0 +1,166 @@
+import { disconnectedModel, readConnection } from "./connection.ts";
+import type { ConnectionModel } from "./connection.ts";
+
+export const STATE_CHANNEL = "GSXI.Efb.State";
+export const HELLO_CHANNEL = "GSXI.Efb.Hello";
+export const RELAY_CHANNEL = "GSXI.Bridge.JsRelay";
+export const COMMBUS_SERVICE = "/JS/Services/CommBus.js";
+
+// The transport carries no connection: nobody is told when the client dies,
+// and the client only publishes when its snapshot changes. So the app asks
+// whenever it has been left quiet, and takes silence for an answer.
+export const SILENCE_MS = 5000;
+export const ANSWER_DEADLINE_MS = 5000;
+export const POLL_MS = 1000;
+
+export type ConnectionListener = (model: ConnectionModel) => void;
+
+export interface CommBusListener {
+  on(channel: string, handler: (payload: string) => void): void;
+  callWasm?(channel: string, payload: string): void;
+}
+
+export type ListenerFactory = (onReady: () => void) => CommBusListener;
+
+const log = (...args: unknown[]): void => console.log("[GSXI][efb-app]", ...args);
+const warn = (...args: unknown[]): void => console.warn("[GSXI][efb-app]", ...args);
+
+declare const global: unknown;
+
+function simulatorScope(): Record<string, unknown> {
+  return (typeof window !== "undefined" ? window : global) as Record<string, unknown>;
+}
+
+function simulatorListenerFactory(): ListenerFactory | undefined {
+  const scope = simulatorScope();
+
+  const commBus = scope["RegisterCommBusListener"];
+  if (typeof commBus === "function") {
+    return commBus as ListenerFactory;
+  }
+
+  const view = scope["RegisterViewListener"];
+  if (typeof view === "function") {
+    return (onReady) =>
+      (view as (name: string, onReady: () => void) => CommBusListener)("JS_LISTENER_COMM_BUS", onReady);
+  }
+
+  return undefined;
+}
+
+export class ClientChannel {
+  private model: ConnectionModel = disconnectedModel();
+  private readonly listeners = new Set<ConnectionListener>();
+  private started = false;
+  private listener: CommBusListener | null = null;
+  private lastHeardMs: number | null = null;
+  private askedMs: number | null = null;
+
+  private readonly resolveFactory: () => ListenerFactory | undefined;
+
+  public constructor(resolveFactory: () => ListenerFactory | undefined = simulatorListenerFactory) {
+    this.resolveFactory = resolveFactory;
+  }
+
+  public get current(): ConnectionModel {
+    return this.model;
+  }
+
+  public subscribe(listener: ConnectionListener): () => void {
+    this.listeners.add(listener);
+    listener(this.model);
+
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  public accept(raw: unknown, nowMs = Date.now()): void {
+    this.lastHeardMs = nowMs;
+    this.askedMs = null;
+
+    const next = readConnection(raw);
+    if (next.fault !== undefined) {
+      warn(`dropping message on ${STATE_CHANNEL}:`, next.fault);
+    }
+
+    this.publish(next);
+  }
+
+  public poll(nowMs: number): void {
+    if (this.listener === null) {
+      return;
+    }
+
+    if (this.askedMs !== null) {
+      if (nowMs - this.askedMs >= ANSWER_DEADLINE_MS) {
+        this.askedMs = null;
+        this.lastHeardMs = nowMs;
+        this.publish(disconnectedModel());
+      }
+
+      return;
+    }
+
+    if (this.lastHeardMs === null || nowMs - this.lastHeardMs >= SILENCE_MS) {
+      this.ask(nowMs);
+    }
+  }
+
+  private ask(nowMs: number): void {
+    this.askedMs = nowMs;
+    this.sayHello();
+  }
+
+  private publish(next: ConnectionModel): void {
+    if (next.connected === this.model.connected && next.statusText === this.model.statusText) {
+      return;
+    }
+
+    this.model = next;
+    for (const listener of this.listeners) {
+      listener(next);
+    }
+  }
+
+  private sayHello(): void {
+    const callWasm = this.listener?.callWasm;
+    if (callWasm === undefined) {
+      warn("the listener has no callWasm; the client will not know the app is listening.");
+      return;
+    }
+
+    callWasm.call(
+      this.listener,
+      RELAY_CHANNEL,
+      JSON.stringify({ channel: HELLO_CHANNEL, payload: "hello" }),
+    );
+  }
+
+  public async start(loadService: () => Promise<void>): Promise<void> {
+    if (this.started) {
+      return;
+    }
+    this.started = true;
+
+    try {
+      await loadService();
+    } catch (error) {
+      warn(`failed to load ${COMMBUS_SERVICE}; falling back to the bare view listener.`, error);
+    }
+
+    const factory = this.resolveFactory();
+    if (factory === undefined) {
+      warn("no CommBus listener factory available; the app stays disconnected.");
+      return;
+    }
+
+    this.listener = factory(() => {
+      this.listener?.on(STATE_CHANNEL, (payload) => this.accept(payload));
+      log(`listening on ${STATE_CHANNEL}`);
+      this.ask(Date.now());
+    });
+  }
+}
+
+export const clientChannel = new ClientChannel();

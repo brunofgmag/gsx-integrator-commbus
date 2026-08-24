@@ -49,6 +49,55 @@ if (-not (Test-Path -LiteralPath $Wasm)) {
 }
 Write-Host "==> WASM built: $Wasm" -ForegroundColor Green
 
+$EfbApp = Join-Path $Root 'PackageSources\GsxIntegrator'
+$EfbAppDist = Join-Path $EfbApp 'dist'
+$EfbSdk = Join-Path $EfbApp '.sdk'
+$EfbSdkSource = Join-Path $SdkRoot 'Samples\DevmodeProjects\EFB\PackageSources'
+
+$npm = Get-Command npm -ErrorAction SilentlyContinue
+if (-not $npm) {
+    throw 'npm was not found. Install Node.js (18 or newer) to build the EFB app.'
+}
+
+# The shared merge-validator installs no Node, so whatever the runner ships is
+# what builds the app. Say so here instead of failing inside esbuild.
+$nodeVersion = (& node --version) -replace '^v', ''
+if ([version]($nodeVersion -split '-')[0] -lt [version]'18.0.0') {
+    throw "Node.js 18 or newer is required to build the EFB app; found $nodeVersion."
+}
+Write-Host "==> Node $nodeVersion"
+
+foreach ($dependency in @('efb_api', 'vendor')) {
+    $source = Join-Path $EfbSdkSource $dependency
+    if (-not (Test-Path -LiteralPath $source)) {
+        throw "EFB SDK dependency not found at $source. Install the EFB sample from the MSFS 2024 SDK."
+    }
+    $destination = Join-Path $EfbSdk $dependency
+    Remove-Item -Recurse -Force -Path $destination -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Force -Path $destination | Out-Null
+    Copy-Item -Recurse -Force -Path (Join-Path $source '*') -Destination $destination
+}
+
+Write-Host '==> Building EFB app'
+# npm reads package.json from the working directory, not from --prefix, and a
+# stray package.json further up the tree is enough to make --prefix look right.
+Push-Location $EfbApp
+try {
+    & npm.cmd install --no-audit --no-fund
+    if ($LASTEXITCODE -ne 0) { throw "npm install failed (exit $LASTEXITCODE)." }
+    & npm.cmd run build
+    if ($LASTEXITCODE -ne 0) { throw "EFB app build failed (exit $LASTEXITCODE)." }
+}
+finally {
+    Pop-Location
+}
+
+$EfbAppEntry = Join-Path $EfbAppDist 'GsxIntegrator.js'
+if (-not (Test-Path -LiteralPath $EfbAppEntry)) {
+    throw "EFB app bundle was not produced at $EfbAppEntry"
+}
+Write-Host "==> EFB app built: $EfbAppDist" -ForegroundColor Green
+
 # Default: fspackagetool (compiles SPB, copies html_ui + modules).
 # -NoSim: copy files + prebuilt SPB and generate manifest.json/layout.json
 $Output = Join-Path $Root 'Packages\gsx-integrator-commbus'
@@ -64,6 +113,8 @@ if ($NoSim) {
     New-Item -ItemType Directory -Force -Path (Join-Path $Output 'InGamePanels') | Out-Null
     Copy-Item -Recurse -Force (Join-Path $Root 'PackageSources\html_ui') (Join-Path $Output 'html_ui')
     Copy-Item -Recurse -Force (Join-Path $Root 'PackageSources\modules') (Join-Path $Output 'modules')
+    New-Item -ItemType Directory -Force -Path (Join-Path $Output 'html_ui\efb_ui\efb_apps') | Out-Null
+    Copy-Item -Recurse -Force $EfbAppDist (Join-Path $Output 'html_ui\efb_ui\efb_apps\GsxIntegrator')
     Copy-Item -Force $Spb (Join-Path $Output 'InGamePanels\gsx-integrator-commbus.spb')
 
     $files = Get-ChildItem -Recurse -File -Path $Output |
@@ -127,6 +178,11 @@ if (-not (Test-Path -LiteralPath $PackagedWasm)) {
     Write-Warning "WASM not found in package modules/. Copying manually and you may need to regenerate layout.json."
     New-Item -ItemType Directory -Force -Path $PackagedModules | Out-Null
     Copy-Item -LiteralPath $Wasm -Destination $PackagedWasm -Force
+}
+
+$PackagedEfbApp = Join-Path $Output 'html_ui\efb_ui\efb_apps\GsxIntegrator\GsxIntegrator.js'
+if (-not (Test-Path -LiteralPath $PackagedEfbApp)) {
+    throw "EFB app is missing from the package at $PackagedEfbApp"
 }
 
 Write-Host "==> Package ready: $Output" -ForegroundColor Green

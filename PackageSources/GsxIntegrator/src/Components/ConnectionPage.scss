@@ -1,0 +1,61 @@
+.connection-page {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  * {
+    box-sizing: border-box;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 420px;
+    padding: 28px 24px;
+    text-align: center;
+    background: var(--gsxi-panel);
+    border: 1px solid var(--gsxi-line);
+    border-radius: var(--gsxi-radius);
+  }
+
+  .card-label {
+    display: block;
+    color: var(--gsxi-muted);
+    font-size: 18px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    margin-right: 14px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+  }
+
+  .dot-ok {
+    background: var(--gsxi-ok);
+  }
+
+  .dot-off {
+    background: transparent;
+    border: 2px solid var(--gsxi-muted);
+  }
+
+  .status-text {
+    font-size: 32px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+}

@@ -1,0 +1,15 @@
+.gsx-integrator-app {
+  --gsxi-bg: #0b1016;
+  --gsxi-panel: #121a24;
+  --gsxi-line: #1e2c3d;
+  --gsxi-text: #e6eef7;
+  --gsxi-muted: #7e91a6;
+  --gsxi-ok: #35d07f;
+  --gsxi-radius: 4px;
+
+  width: 100%;
+  height: 100%;
+  display: flex;
+  background: var(--gsxi-bg);
+  color: var(--gsxi-text);
+}

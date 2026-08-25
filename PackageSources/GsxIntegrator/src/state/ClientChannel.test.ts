@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   ANSWER_DEADLINE_MS,
   ClientChannel,
+  COMMAND_CHANNEL,
   COMMBUS_SERVICE,
   HELLO_CHANNEL,
   RELAY_CHANNEL,
@@ -288,4 +289,53 @@ test("a client that comes back is heard without waiting for the next question", 
   channel.accept('{"connected":true}', SILENCE_MS + ANSWER_DEADLINE_MS + 10);
 
   assert.equal(channel.current.connected, true);
+});
+
+test("a touch reaches the client through the same relay the hello uses", async () => {
+  const sent: Array<[string, string]> = [];
+  const listener = {
+    on: () => undefined,
+    callWasm: (channel: string, payload: string) => sent.push([channel, payload]),
+  };
+  const channel = new ClientChannel(() => (onReady) => {
+    queueMicrotask(onReady);
+    return listener;
+  });
+
+  await channel.start(async () => undefined);
+  await new Promise((resolve) => queueMicrotask(() => resolve(null)));
+  sent.length = 0;
+
+  channel.send("startLoading");
+
+  assert.deepEqual(sent, [
+    [
+      RELAY_CHANNEL,
+      JSON.stringify({
+        channel: COMMAND_CHANNEL,
+        payload: JSON.stringify({ command: "startLoading" }),
+      }),
+    ],
+  ]);
+});
+
+test("a touch with no way back warns instead of throwing", async () => {
+  const channel = new ClientChannel(() => (onReady) => {
+    queueMicrotask(onReady);
+    return { on: () => undefined };
+  });
+
+  await channel.start(async () => undefined);
+  await new Promise((resolve) => queueMicrotask(() => resolve(null)));
+
+  const warnings: unknown[] = [];
+  const originalWarn = console.warn;
+  console.warn = (...args: unknown[]) => warnings.push(args);
+  try {
+    channel.send("startLoading");
+  } finally {
+    console.warn = originalWarn;
+  }
+
+  assert.equal(warnings.length, 1);
 });

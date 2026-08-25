@@ -123,7 +123,7 @@
 
   .header-label {
     color: var(--gsxi-muted);
-    font-size: sy(12px);
+    font-size: sy(13px);
     letter-spacing: sy(2px);
     text-transform: uppercase;
     overflow: hidden;
@@ -139,13 +139,10 @@
     margin-left: sx(10px);
   }
 
-  .header-text {
-    color: var(--gsxi-ok);
-    font-size: sy(12px);
-    letter-spacing: sy(1.5px);
-    text-transform: uppercase;
-    white-space: nowrap;
+  .header-status .dot {
+    margin-right: 0;
   }
+
 
   .page-body {
     flex: 1 1 auto;
@@ -154,6 +151,20 @@
     overflow-y: auto;
     overflow-x: hidden;
     padding-top: sy(9px);
+  }
+
+  .page-body::-webkit-scrollbar {
+    width: sx(6px);
+  }
+
+  .page-body::-webkit-scrollbar-track {
+    background: var(--gsxi-panel2);
+    border-radius: sx(3px);
+  }
+
+  .page-body::-webkit-scrollbar-thumb {
+    background: var(--gsxi-muted);
+    border-radius: sx(3px);
   }
 
   .chip-strip {
@@ -171,18 +182,10 @@
     min-width: 0;
   }
 
-  .chip-label {
-    color: var(--gsxi-muted);
-    font-size: sy(10px);
-    letter-spacing: sy(0.9px);
-    text-transform: uppercase;
-  }
-
-  .chip-value {
-    margin-left: sx(5px);
-    font-size: sy(10px);
+  .chip-text {
+    font-size: sy(13px);
     font-weight: bold;
-    letter-spacing: sy(0.4px);
+    letter-spacing: sy(0.9px);
     text-transform: uppercase;
   }
 
@@ -204,7 +207,7 @@
 
   .state-title {
     color: var(--gsxi-muted);
-    font-size: sy(10px);
+    font-size: sy(13px);
     letter-spacing: sy(1.2px);
     text-transform: uppercase;
   }
@@ -234,7 +237,7 @@
     color: var(--gsxi-accent);
     border: 1px solid var(--gsxi-accent);
     border-radius: var(--gsxi-radius-small);
-    font-size: sy(10px);
+    font-size: sy(12px);
     letter-spacing: sy(1px);
     text-transform: uppercase;
   }
@@ -250,7 +253,7 @@
 
   .next-phase {
     color: var(--gsxi-muted);
-    font-size: sy(10px);
+    font-size: sy(13px);
     letter-spacing: sy(0.8px);
     text-transform: uppercase;
     line-height: 1.3;
@@ -259,7 +262,7 @@
 
   .next-countdown {
     color: var(--gsxi-accent);
-    font-size: sy(10px);
+    font-size: sy(13px);
     letter-spacing: sy(0.8px);
     text-transform: uppercase;
     margin-left: sx(10px);
@@ -284,7 +287,7 @@
     background: var(--gsxi-amber);
     color: var(--gsxi-bg);
     border-radius: var(--gsxi-radius-small);
-    font-size: sy(9px);
+    font-size: sy(11px);
     font-weight: bold;
     letter-spacing: sy(1.2px);
     text-transform: uppercase;
@@ -292,7 +295,7 @@
 
   .advisory-text {
     color: var(--gsxi-tip-fg);
-    font-size: sy(12px);
+    font-size: sy(13px);
     line-height: 1.35;
     min-width: 0;
     word-wrap: break-word;
@@ -314,7 +317,7 @@
     background: var(--gsxi-red);
     color: var(--gsxi-bg);
     border-radius: var(--gsxi-radius-small);
-    font-size: sy(9px);
+    font-size: sy(11px);
     font-weight: bold;
     letter-spacing: sy(1.2px);
     text-transform: uppercase;
@@ -322,7 +325,7 @@
 
   .error-text {
     color: var(--gsxi-red);
-    font-size: sy(12px);
+    font-size: sy(13px);
     line-height: 1.35;
     min-width: 0;
     word-wrap: break-word;
@@ -377,7 +380,7 @@
 
   .card-title {
     color: var(--gsxi-muted);
-    font-size: sy(10px);
+    font-size: sy(13px);
     letter-spacing: sy(1.2px);
     text-transform: uppercase;
   }
@@ -408,7 +411,7 @@
   .card-refusal {
     margin-top: sy(9px);
     color: var(--gsxi-red);
-    font-size: sy(11px);
+    font-size: sy(13px);
     text-transform: uppercase;
     line-height: 1.3;
   }
@@ -440,7 +443,7 @@
 
   .row-label {
     color: var(--gsxi-muted);
-    font-size: sy(11px);
+    font-size: sy(13px);
     letter-spacing: sy(0.6px);
     text-transform: uppercase;
     overflow: hidden;
@@ -450,10 +453,69 @@
   }
 
   .row-value {
-    font-size: sy(11px);
+    font-size: sy(13px);
     text-transform: uppercase;
     margin-left: sx(10px);
     text-align: right;
     white-space: nowrap;
+  }
+
+  .action-bar {
+    display: flex;
+    align-items: stretch;
+    flex-wrap: wrap;
+    flex: 0 0 auto;
+    min-width: 0;
+    margin: sy(8px) sx(-3px) sy(-4px);
+    padding-top: sy(8px);
+    border-top: 1px solid var(--gsxi-line);
+  }
+
+  .action-button {
+    flex: 1 1 40%;
+    min-width: 0;
+    margin: 0 sx(3px) sy(4px);
+    padding: sy(8px) sx(6px);
+    background: var(--gsxi-panel);
+    color: var(--gsxi-text);
+    border: 1px solid var(--gsxi-line);
+    border-radius: var(--gsxi-radius);
+    text-align: center;
+  }
+
+  .action-label {
+    display: block;
+    font-size: sy(13px);
+    font-weight: bold;
+    letter-spacing: sy(0.6px);
+    text-transform: uppercase;
+    line-height: 1.2;
+    white-space: normal;
+  }
+
+  .action-button:not(.disabled):not(.armed):hover {
+    background: var(--gsxi-panel2);
+    border-color: var(--gsxi-muted);
+  }
+
+  .action-button:not(.disabled):not(.armed):active {
+    border-color: var(--gsxi-accent);
+    color: var(--gsxi-accent);
+  }
+
+  .action-button.armed:hover {
+    border-color: var(--gsxi-text);
+  }
+
+  .action-button.disabled {
+    background: var(--gsxi-panel2);
+    border-color: var(--gsxi-panel2);
+    color: var(--gsxi-muted);
+  }
+
+  .action-button.armed {
+    background: var(--gsxi-red-bg);
+    border-color: var(--gsxi-red);
+    color: var(--gsxi-red);
   }
 }

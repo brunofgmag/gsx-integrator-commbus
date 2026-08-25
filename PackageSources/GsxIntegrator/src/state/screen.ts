@@ -2,7 +2,6 @@ export type Tone = "text" | "muted" | "accent" | "ok" | "warn" | "error";
 
 export interface StatusChip {
   label: string;
-  value: string;
   tone: Tone;
 }
 
@@ -37,6 +36,15 @@ export interface CommandError {
   text: string;
 }
 
+export type ActionId = "startFlow" | "startLoading" | "restartFlow" | "reloadSimbrief";
+
+export interface Action {
+  id: ActionId;
+  label: string;
+  confirmLabel: string | null;
+  enabled: boolean;
+}
+
 export interface ScreenModel {
   connected: boolean;
   statusText: string;
@@ -45,9 +53,11 @@ export interface ScreenModel {
   advisories: string[];
   commandError: CommandError | null;
   cards: DataCard[];
+  actions: Action[];
   fault?: string;
 }
 
+export const ACTION_SLOTS = 4;
 export const CHIP_SLOTS = 5;
 export const ADVISORY_SLOTS = 5;
 export const CARD_SLOTS = 3;
@@ -71,6 +81,7 @@ function disconnected(fault?: string): ScreenModel {
     advisories: [],
     commandError: null,
     cards: [],
+    actions: [],
   };
 
   return fault === undefined ? model : { ...model, fault };
@@ -129,6 +140,7 @@ export function readScreen(raw: unknown): ScreenModel {
     advisories: readAdvisories(fields),
     commandError: readCommandError(fields),
     cards: readCards(fields),
+    actions: readActions(fields),
   };
 }
 
@@ -146,34 +158,34 @@ function number(fields: Fields, key: string): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-function chip(fields: Fields, labelKey: string, valueKey: string, tone: Tone): StatusChip | null {
+function chip(fields: Fields, labelKey: string, tone: Tone): StatusChip | null {
   const label = text(fields, labelKey);
-  const value = text(fields, valueKey);
 
-  return label === null || value === null ? null : { label, value, tone };
+  return label === null ? null : { label, tone };
+}
+
+function modeTone(running: boolean, armed: boolean): Tone {
+  if (running) {
+    return "ok";
+  }
+
+  return armed ? "accent" : "muted";
 }
 
 function readChips(fields: Fields): StatusChip[] {
   return [
-    chip(fields, "simLabel", "simStatusText", "ok"),
-    chip(fields, "gsxLabel", "gsxStatusText", flag(fields, "gsxAvailable") ? "ok" : "warn"),
-    chip(
-      fields,
-      "aircraftLabel",
-      "aircraftNameText",
-      flag(fields, "aircraftSupported") ? "text" : "muted",
-    ),
+    chip(fields, "simLabel", "ok"),
+    chip(fields, "gsxLabel", flag(fields, "gsxAvailable") ? "ok" : "warn"),
+    chip(fields, "aircraftNameText", flag(fields, "aircraftSupported") ? "text" : "muted"),
     chip(
       fields,
       "turnaroundModeLabel",
-      "turnaroundModeText",
-      flag(fields, "enabled") ? "accent" : "muted",
+      modeTone(flag(fields, "enabled"), flag(fields, "autoStartFlow")),
     ),
     chip(
       fields,
       "loadingModeLabel",
-      "loadingModeText",
-      flag(fields, "autoStartLoading") ? "accent" : "muted",
+      modeTone(flag(fields, "loadingRunning"), flag(fields, "autoStartLoading")),
     ),
   ].filter((entry): entry is StatusChip => entry !== null);
 }
@@ -300,4 +312,53 @@ function readCards(fields: Fields): DataCard[] {
       ],
     ),
   ].filter((entry): entry is DataCard => entry !== null);
+}
+
+interface ActionSource {
+  id: ActionId;
+  labelKey: string;
+  confirmKey: string | null;
+  permissionKey: string;
+}
+
+const ACTION_SOURCES: ActionSource[] = [
+  { id: "startFlow", labelKey: "startFlowLabel", confirmKey: null, permissionKey: "canStartFlow" },
+  {
+    id: "startLoading",
+    labelKey: "startLoadingLabel",
+    confirmKey: null,
+    permissionKey: "canStartLoading",
+  },
+  {
+    id: "restartFlow",
+    labelKey: "restartFlowLabel",
+    confirmKey: "confirmRestartLabel",
+    permissionKey: "canRestartFlow",
+  },
+  {
+    id: "reloadSimbrief",
+    labelKey: "reloadSimbriefLabel",
+    confirmKey: null,
+    permissionKey: "canReloadSimbrief",
+  },
+];
+
+function action(fields: Fields, source: ActionSource): Action | null {
+  const label = text(fields, source.labelKey);
+  if (label === null) {
+    return null;
+  }
+
+  return {
+    id: source.id,
+    label,
+    confirmLabel: source.confirmKey === null ? null : text(fields, source.confirmKey),
+    enabled: flag(fields, source.permissionKey),
+  };
+}
+
+function readActions(fields: Fields): Action[] {
+  return ACTION_SOURCES.map((source) => action(fields, source)).filter(
+    (entry): entry is Action => entry !== null,
+  );
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.6.0...v0.7.0) (2026-08-25)
+
+
+### Features
+
+* **efb:** offer the pilot touch button on the operations page ([#28](https://github.com/brunofgmag/gsx-integrator-commbus/issues/28)) ([316e7fb](https://github.com/brunofgmag/gsx-integrator-commbus/commit/316e7fbf434fc40d17d55d28f430bde0a7d98d72))
+
 ## [0.6.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.5.0...v0.6.0) (2026-08-25)
 
 

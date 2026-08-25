@@ -341,6 +341,7 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
               <span class="dot dot-off" ref={this.offlineDot} />
               <span class="offline-text" ref={this.offlineText} />
             </div>
+            <p class="offline-hint">Start GSX Integrator on your desktop.</p>
           </div>
         </div>
 

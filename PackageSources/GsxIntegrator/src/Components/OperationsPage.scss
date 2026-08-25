@@ -66,18 +66,15 @@
     height: 100%;
     padding: sy(24px) sx(24px);
     display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   .offline-card {
-    width: 100%;
-    max-width: sx(420px);
+    flex: 1 1 auto;
     padding: sy(28px) sx(24px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     text-align: center;
-    background: var(--gsxi-panel);
-    border: 1px solid var(--gsxi-line);
-    border-radius: var(--gsxi-radius);
   }
 
   .offline-label {
@@ -99,6 +96,14 @@
     font-size: sy(26px);
     letter-spacing: sy(2px);
     text-transform: uppercase;
+  }
+
+  .offline-hint {
+    max-width: sx(360px);
+    margin: sy(22px) auto 0;
+    color: var(--gsxi-muted);
+    font-size: sy(17px);
+    line-height: 1.45;
   }
 
   .online {

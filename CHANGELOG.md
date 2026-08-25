@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.4.2...v0.5.0) (2026-08-25)
+
+
+### Features
+
+* **efb:** send the four flow commands and fit the app to the panel ([#23](https://github.com/brunofgmag/gsx-integrator-commbus/issues/23)) ([f9d51bb](https://github.com/brunofgmag/gsx-integrator-commbus/commit/f9d51bb09dba6c98351806851809f4c9e966fdb1))
+
 ## [0.4.2](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.4.1...v0.4.2) (2026-08-25)
 
 

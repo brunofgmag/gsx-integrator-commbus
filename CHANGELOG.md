@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.5.0...v0.6.0) (2026-08-25)
+
+
+### Features
+
+* **efb:** tell the pilot what to do when the client is not running ([#26](https://github.com/brunofgmag/gsx-integrator-commbus/issues/26)) ([ae7c155](https://github.com/brunofgmag/gsx-integrator-commbus/commit/ae7c155cd62b9fc29c4e7a825cee381019ef6e53))
+
 ## [0.5.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.4.2...v0.5.0) (2026-08-25)
 
 

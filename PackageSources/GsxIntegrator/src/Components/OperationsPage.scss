@@ -236,18 +236,6 @@
     word-wrap: break-word;
   }
 
-  .pilot-mark {
-    display: inline-block;
-    margin-top: sy(8px);
-    padding: sy(3px) sx(8px);
-    color: var(--gsxi-accent);
-    border: 1px solid var(--gsxi-accent);
-    border-radius: var(--gsxi-radius-small);
-    font-size: sy(12px);
-    letter-spacing: sy(1px);
-    text-transform: uppercase;
-  }
-
   .state-next {
     display: flex;
     flex-wrap: wrap;

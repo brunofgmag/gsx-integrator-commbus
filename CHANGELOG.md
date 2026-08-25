@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.4.1...v0.4.2) (2026-08-25)
+
+
+### Bug Fixes
+
+* **efb:** draw against the panel scale so the app fits an expanded EFB ([#21](https://github.com/brunofgmag/gsx-integrator-commbus/issues/21)) ([92429ba](https://github.com/brunofgmag/gsx-integrator-commbus/commit/92429ba672cf180e31e20858c1281cbfaf945e6d))
+
 ## [0.4.1](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.4.0...v0.4.1) (2026-08-24)
 
 

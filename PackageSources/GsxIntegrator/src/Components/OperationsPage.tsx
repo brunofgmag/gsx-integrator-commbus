@@ -313,7 +313,6 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
   private readonly stateTitle = FSComponent.createRef<HTMLSpanElement>();
   private readonly stateCounter = FSComponent.createRef<HTMLSpanElement>();
   private readonly stateText = FSComponent.createRef<HTMLDivElement>();
-  private readonly pilotMark = FSComponent.createRef<HTMLDivElement>();
   private readonly nextPhase = FSComponent.createRef<HTMLSpanElement>();
   private readonly countdown = FSComponent.createRef<HTMLSpanElement>();
 
@@ -358,8 +357,6 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
       this.stateTitle.instance.textContent = model.state.title;
       this.stateCounter.instance.textContent = model.state.counter;
       this.stateText.instance.textContent = model.state.text;
-      display(this.pilotMark, model.state.pilotMark !== null);
-      this.pilotMark.instance.textContent = model.state.pilotMark ?? "";
       this.nextPhase.instance.textContent = model.state.next;
       display(this.countdown, model.state.countdown !== "");
       this.countdown.instance.textContent = model.state.countdown;
@@ -421,7 +418,6 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
                 <span class="state-counter" ref={this.stateCounter} />
               </div>
               <div class="state-text" ref={this.stateText} />
-              <div class="pilot-mark" ref={this.pilotMark} />
               <div class="state-next">
                 <span class="next-phase" ref={this.nextPhase} />
                 <span class="next-countdown" ref={this.countdown} />

@@ -56,7 +56,6 @@ test("the full payload yields every block of the screen", () => {
     title: "Turnaround state",
     counter: "12/26",
     text: "Waiting for start loading",
-    pilotMark: "Unlocked by the pilot",
     next: "Next ▸ Waiting for beacon & brake",
     countdown: "Next state in 12s",
   });
@@ -297,12 +296,6 @@ test("a client that is not talking to the sim or to GSX warns on both chips", ()
     model.chips.map((chip) => chip.tone),
     ["ok", "warn", "muted", "muted", "muted"],
   );
-});
-
-test("a phase nobody unlocked carries no pilot mark", () => {
-  const model = readScreen(payloadWith({ advancedByPilot: false }));
-
-  assert.equal(model.state?.pilotMark, null);
 });
 
 test("no command error yields no error strip", () => {

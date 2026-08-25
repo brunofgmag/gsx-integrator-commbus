@@ -26,7 +26,6 @@ export interface StateCard {
   title: string;
   counter: string;
   text: string;
-  pilotMark: string | null;
   next: string;
   countdown: string;
 }
@@ -209,7 +208,6 @@ function readState(fields: Fields): StateCard | null {
     title: text(fields, "turnaroundStateLabel") ?? "",
     counter: text(fields, "phaseCounterText") ?? "",
     text: stateText,
-    pilotMark: flag(fields, "advancedByPilot") ? text(fields, "advancedByPilotText") : null,
     next: text(fields, "nextPhaseText") ?? "",
     countdown: text(fields, "holdCountdownText") ?? "",
   };

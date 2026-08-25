@@ -1,4 +1,14 @@
+@use "scale" as *;
+
 .gsx-integrator-app {
+  --sx: calc(var(--panel-width) / var(--base-width, 516));
+  --sy: calc(var(--panel-height) / var(--base-height, 716));
+
+  @media (max-height: 716px) {
+    --sx: 1;
+    --sy: 1;
+  }
+
   --gsxi-bg: #0b1016;
   --gsxi-panel: #121a24;
   --gsxi-panel2: #0d141c;
@@ -11,8 +21,8 @@
   --gsxi-red: #ff5d5d;
   --gsxi-tip-bg: #231a09;
   --gsxi-tip-fg: #ffce8a;
-  --gsxi-radius: 4px;
-  --gsxi-radius-small: 3px;
+  --gsxi-radius: #{sy(4px)};
+  --gsxi-radius-small: #{sy(3px)};
 
   width: 100%;
   height: 100%;

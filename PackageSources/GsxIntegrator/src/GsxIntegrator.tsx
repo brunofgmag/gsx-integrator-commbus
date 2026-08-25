@@ -41,7 +41,7 @@ class GsxIntegratorView extends AppView<RequiredProps<AppViewProps, "bus">> {
   public render(): VNode {
     return (
       <div class="gsx-integrator-app">
-        <OperationsPage model={this.model} />
+        <OperationsPage model={this.model} onTouch={(id) => clientChannel.send(id)} />
       </div>
     );
   }

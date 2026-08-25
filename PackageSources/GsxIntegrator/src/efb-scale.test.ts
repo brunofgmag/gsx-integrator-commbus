@@ -8,7 +8,6 @@ import { sourceFiles } from "./test-support/sources.ts";
 const SOURCE_ROOT = join(process.cwd(), "src");
 
 const HAIRLINE = /^\s*border(-[a-z]+)?:\s*\d+px\s+solid/;
-const FLOOR = /^\s*@media\s*\(max-height:\s*716px\)/;
 
 function stylesheets(): string[] {
   return sourceFiles(SOURCE_ROOT, (entry) => entry.endsWith(".scss"));
@@ -18,7 +17,7 @@ function unscaledPixels(path: string): string[] {
   return readFileSync(path, "utf8")
     .split("\n")
     .flatMap((line, index) => {
-      if (HAIRLINE.test(line) || FLOOR.test(line)) {
+      if (HAIRLINE.test(line)) {
         return [];
       }
 
@@ -33,7 +32,7 @@ test("every pixel in a stylesheet goes through the panel scale", () => {
   assert.deepEqual(
     offenders,
     [],
-    "the EFB draws against a 516x716 base and multiplies by --panel-width/--panel-height, so wrap the value in sx() or sy()",
+    "the EFB draws against the base it publishes and multiplies by --panel-width/--panel-height, so wrap the value in sx() or sy()",
   );
 });
 
@@ -45,6 +44,6 @@ test("no stylesheet clamps with max() or clamp()", () => {
   assert.deepEqual(
     offenders,
     [],
-    "Coherent drops the whole declaration; the floor below the base is the max-height: 716px query",
+    "Coherent drops the whole declaration, and there is no floor to fall back on: the scale is a plain ratio",
   );
 });

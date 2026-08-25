@@ -4,11 +4,6 @@
   --sx: calc(var(--panel-width) / var(--base-width, 516));
   --sy: calc(var(--panel-height) / var(--base-height, 716));
 
-  @media (max-height: 716px) {
-    --sx: 1;
-    --sy: 1;
-  }
-
   --gsxi-bg: #0b1016;
   --gsxi-panel: #121a24;
   --gsxi-panel2: #0d141c;
@@ -20,6 +15,7 @@
   --gsxi-amber: #ffb454;
   --gsxi-red: #ff5d5d;
   --gsxi-tip-bg: #231a09;
+  --gsxi-red-bg: #2a1214;
   --gsxi-tip-fg: #ffce8a;
   --gsxi-radius: #{sy(4px)};
   --gsxi-radius-small: #{sy(3px)};

@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
+  ACTION_SLOTS,
   ADVISORY_SLOTS,
   CARD_SLOTS,
   CHIP_SLOTS,
@@ -41,13 +42,13 @@ test("the full payload yields every block of the screen", () => {
   assert.equal(model.fault, undefined);
 
   assert.deepEqual(
-    model.chips.map((chip) => [chip.label, chip.value, chip.tone]),
+    model.chips.map((chip) => [chip.label, chip.tone]),
     [
-      ["Sim", "Connected", "ok"],
-      ["GSX Pro", "Connected", "ok"],
-      ["Aircraft", "PMDG 737-800", "text"],
-      ["Turnaround", "Auto · On", "accent"],
-      ["Loading", "Auto", "accent"],
+      ["Sim", "ok"],
+      ["GSX Pro", "ok"],
+      ["PMDG 737-800", "text"],
+      ["Turnaround", "ok"],
+      ["Loading", "accent"],
     ],
   );
 
@@ -286,7 +287,9 @@ test("a client that is not talking to the sim or to GSX warns on both chips", ()
       aircraftSupported: false,
       aircraftNameText: "Standby",
       enabled: false,
+      autoStartFlow: false,
       autoStartLoading: false,
+      loadingRunning: false,
     }),
   );
 
@@ -396,8 +399,113 @@ test("the model never outgrows the slots the page draws", () => {
   assert.ok(model.chips.length <= CHIP_SLOTS, `${model.chips.length} chips`);
   assert.ok(model.advisories.length <= ADVISORY_SLOTS, `${model.advisories.length} advisories`);
   assert.ok(model.cards.length <= CARD_SLOTS, `${model.cards.length} cards`);
+  assert.ok(model.actions.length <= ACTION_SLOTS, `${model.actions.length} actions`);
 
   for (const card of model.cards) {
     assert.ok(card.rows.length <= ROW_SLOTS, `${card.title} has ${card.rows.length} rows`);
   }
+});
+
+test("the four flow buttons arrive in the order the window puts them in", () => {
+  const model = readScreen(FULL_PAYLOAD);
+
+  assert.deepEqual(
+    model.actions.map((action) => action.id),
+    ["startFlow", "startLoading", "restartFlow", "reloadSimbrief"],
+  );
+  assert.deepEqual(
+    model.actions.map((action) => action.label),
+    ["Start Flow", "Start Loading", "Restart Flow", "Reload SimBrief"],
+  );
+});
+
+test("a button the client refuses arrives disabled instead of absent", () => {
+  const model = readScreen(FULL_PAYLOAD);
+
+  assert.deepEqual(
+    model.actions.map((action) => action.enabled),
+    [true, true, false, true],
+  );
+});
+
+test("only the restart button carries a confirmation label", () => {
+  const model = readScreen(FULL_PAYLOAD);
+
+  assert.deepEqual(
+    model.actions.map((action) => action.confirmLabel),
+    [null, null, "Confirm restart", null],
+  );
+});
+
+test("a button whose label never arrived drops out instead of drawing blank", () => {
+  const model = readScreen(
+    '{"connected":true,"startLoadingLabel":"Start Loading","canStartLoading":true}',
+  );
+
+  assert.deepEqual(
+    model.actions.map((action) => action.id),
+    ["startLoading"],
+  );
+});
+
+test("a disconnected screen offers no button to press", () => {
+  assert.deepEqual(disconnectedScreen().actions, []);
+});
+
+test("the two chips that only ever say yes or no carry it in the tone alone", () => {
+  const connected = readScreen(FULL_PAYLOAD);
+
+  assert.deepEqual(
+    connected.chips.slice(0, 2).map((chip) => chip.label),
+    ["Sim", "GSX Pro"],
+  );
+
+  const offline = readScreen(payloadWith({ gsxAvailable: false, gsxStatusText: "Offline" }));
+
+  assert.deepEqual(
+    offline.chips.slice(0, 2).map((chip) => chip.tone),
+    ["ok", "warn"],
+  );
+});
+
+test("the turnaround and loading chips read grey stopped, blue armed, green running", () => {
+  const tones = (fields: Record<string, unknown>): string[] =>
+    readScreen(payloadWith(fields))
+      .chips.slice(3)
+      .map((chip) => chip.tone);
+
+  assert.deepEqual(
+    tones({ enabled: false, autoStartFlow: false, loadingRunning: false, autoStartLoading: false }),
+    ["muted", "muted"],
+    "parado e manual e cinza",
+  );
+
+  assert.deepEqual(
+    tones({ enabled: false, autoStartFlow: true, loadingRunning: false, autoStartLoading: true }),
+    ["accent", "accent"],
+    "armado para automatico e azul",
+  );
+
+  assert.deepEqual(
+    tones({ enabled: true, autoStartFlow: false, loadingRunning: true, autoStartLoading: false }),
+    ["ok", "ok"],
+    "rodando e verde, mesmo em manual",
+  );
+});
+
+test("the aircraft chip drops the label and stands on the name alone", () => {
+  const model = readScreen(payloadWith({ aircraftNameText: "Fenix A320", aircraftSupported: true }));
+  const aircraft = model.chips[2];
+
+  assert.equal(aircraft?.label, "Fenix A320");
+  assert.equal(aircraft?.tone, "text");
+});
+
+test("the five chips all stand on a label alone, so the strip needs one line", () => {
+  const model = readScreen(FULL_PAYLOAD);
+
+  assert.deepEqual(
+    model.chips.map((chip) => chip.label),
+    ["Sim", "GSX Pro", "PMDG 737-800", "Turnaround", "Loading"],
+  );
 });

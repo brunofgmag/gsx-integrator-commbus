@@ -3,6 +3,7 @@ import type { ScreenModel } from "./screen.ts";
 
 export const STATE_CHANNEL = "GSXI.Efb.State";
 export const HELLO_CHANNEL = "GSXI.Efb.Hello";
+export const COMMAND_CHANNEL = "GSXI.Efb.Command";
 export const RELAY_CHANNEL = "GSXI.Bridge.JsRelay";
 export const COMMBUS_SERVICE = "/JS/Services/CommBus.js";
 
@@ -133,18 +134,22 @@ export class ClientChannel {
     }
   }
 
+  public send(command: string): void {
+    this.relay(COMMAND_CHANNEL, JSON.stringify({ command }));
+  }
+
   private sayHello(): void {
+    this.relay(HELLO_CHANNEL, "hello");
+  }
+
+  private relay(channel: string, payload: string): void {
     const callWasm = this.listener?.callWasm;
     if (callWasm === undefined) {
-      warn("the listener has no callWasm; the client will not know the app is listening.");
+      warn(`the listener has no callWasm; nothing reaches the client on ${channel}.`);
       return;
     }
 
-    callWasm.call(
-      this.listener,
-      RELAY_CHANNEL,
-      JSON.stringify({ channel: HELLO_CHANNEL, payload: "hello" }),
-    );
+    callWasm.call(this.listener, RELAY_CHANNEL, JSON.stringify({ channel, payload }));
   }
 
   public async start(loadService: () => Promise<void>): Promise<void> {

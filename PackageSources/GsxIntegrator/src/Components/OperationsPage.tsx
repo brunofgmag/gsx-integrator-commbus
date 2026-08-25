@@ -1,8 +1,8 @@
 import { DisplayComponent, FSComponent } from "@microsoft/msfs-sdk";
 import type { ComponentProps, NodeReference, Subscribable, Subscription, VNode } from "@microsoft/msfs-sdk";
 
-import { ADVISORY_SLOTS, CARD_SLOTS, CHIP_SLOTS, ROW_SLOTS } from "../state/screen.ts";
-import type { DataCard, DataRow, ScreenModel, StatusChip } from "../state/screen.ts";
+import { ACTION_SLOTS, ADVISORY_SLOTS, CARD_SLOTS, CHIP_SLOTS, ROW_SLOTS } from "../state/screen.ts";
+import type { Action, ActionId, DataCard, DataRow, ScreenModel, StatusChip } from "../state/screen.ts";
 
 import "./OperationsPage.scss";
 
@@ -101,8 +101,7 @@ class CardSlot extends DisplayComponent<ComponentProps> {
 
 class ChipSlot extends DisplayComponent<ComponentProps> {
   private readonly root = FSComponent.createRef<HTMLDivElement>();
-  private readonly label = FSComponent.createRef<HTMLSpanElement>();
-  private readonly value = FSComponent.createRef<HTMLSpanElement>();
+  private readonly text = FSComponent.createRef<HTMLSpanElement>();
 
   public update(chip: StatusChip | null): void {
     display(this.root, chip !== null);
@@ -111,16 +110,14 @@ class ChipSlot extends DisplayComponent<ComponentProps> {
       return;
     }
 
-    this.label.instance.textContent = chip.label;
-    this.value.instance.textContent = chip.value;
-    this.value.instance.className = `chip-value tone-${chip.tone}`;
+    this.text.instance.textContent = chip.label;
+    this.text.instance.className = `chip-text tone-${chip.tone}`;
   }
 
   public render(): VNode {
     return (
       <span class="status-chip" ref={this.root}>
-        <span class="chip-label" ref={this.label} />
-        <span class="chip-value" ref={this.value} />
+        <span class="chip-text" ref={this.text} />
       </span>
     );
   }
@@ -150,8 +147,107 @@ class AdvisorySlot extends DisplayComponent<ComponentProps> {
   }
 }
 
+const DISARM_MS = 3000;
+
+interface ActionSlotProps extends ComponentProps {
+  onTouch: (id: ActionId) => void;
+}
+
+class ActionSlot extends DisplayComponent<ActionSlotProps> {
+  private readonly root = FSComponent.createRef<HTMLButtonElement>();
+  private readonly label = FSComponent.createRef<HTMLSpanElement>();
+
+  private action: Action | null = null;
+  private armed = false;
+  private disarmHandle: number | null = null;
+
+  private readonly onClick = (): void => this.touch();
+
+  public onAfterRender(node: VNode): void {
+    super.onAfterRender(node);
+
+    this.root.instance.addEventListener("click", this.onClick);
+  }
+
+  public update(action: Action | null): void {
+    display(this.root, action !== null);
+
+    const changed = action?.id !== this.action?.id || action?.enabled !== this.action?.enabled;
+    this.action = action;
+
+    if (changed) {
+      this.disarm();
+    }
+
+    this.paint();
+  }
+
+  public destroy(): void {
+    this.clearTimer();
+    this.root.instance.removeEventListener("click", this.onClick);
+    super.destroy();
+  }
+
+  private paint(): void {
+    if (this.action === null) {
+      return;
+    }
+
+    this.label.instance.textContent = this.armed
+      ? (this.action.confirmLabel ?? this.action.label)
+      : this.action.label;
+
+    const state = this.armed ? " armed" : "";
+    this.root.instance.className = `action-button${this.action.enabled ? "" : " disabled"}${state}`;
+  }
+
+  private clearTimer(): void {
+    if (this.disarmHandle !== null) {
+      window.clearTimeout(this.disarmHandle);
+      this.disarmHandle = null;
+    }
+  }
+
+  private disarm(): void {
+    this.clearTimer();
+    this.armed = false;
+  }
+
+  private touch(): void {
+    if (this.action === null || !this.action.enabled) {
+      return;
+    }
+
+    if (this.action.confirmLabel !== null && !this.armed) {
+      this.armed = true;
+      this.clearTimer();
+      this.disarmHandle = window.setTimeout(() => {
+        this.disarm();
+        this.paint();
+      }, DISARM_MS);
+      this.paint();
+
+      return;
+    }
+
+    const id = this.action.id;
+    this.disarm();
+    this.paint();
+    this.props.onTouch(id);
+  }
+
+  public render(): VNode {
+    return (
+      <button class="action-button" ref={this.root}>
+        <span class="action-label" ref={this.label} />
+      </button>
+    );
+  }
+}
+
 export interface OperationsPageProps extends ComponentProps {
   model: Subscribable<ScreenModel>;
+  onTouch: (id: ActionId) => void;
 }
 
 export class OperationsPage extends DisplayComponent<OperationsPageProps> {
@@ -159,7 +255,6 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
   private readonly online = FSComponent.createRef<HTMLDivElement>();
   private readonly offlineDot = FSComponent.createRef<HTMLSpanElement>();
   private readonly offlineText = FSComponent.createRef<HTMLSpanElement>();
-  private readonly headerText = FSComponent.createRef<HTMLSpanElement>();
 
   private readonly stateCard = FSComponent.createRef<HTMLDivElement>();
   private readonly stateTitle = FSComponent.createRef<HTMLSpanElement>();
@@ -176,6 +271,8 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
   private readonly chips = refs<ChipSlot>(CHIP_SLOTS);
   private readonly advisories = refs<AdvisorySlot>(ADVISORY_SLOTS);
   private readonly cards = refs<CardSlot>(CARD_SLOTS);
+  private readonly actions = refs<ActionSlot>(ACTION_SLOTS);
+  private readonly actionBar = FSComponent.createRef<HTMLDivElement>();
 
   private subscription: Subscription | null = null;
 
@@ -197,7 +294,6 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
 
     this.offlineDot.instance.className = model.connected ? "dot dot-ok" : "dot dot-off";
     this.offlineText.instance.textContent = model.statusText;
-    this.headerText.instance.textContent = model.statusText;
 
     for (let slot = 0; slot < CHIP_SLOTS; slot += 1) {
       this.chips[slot]?.instance.update(model.chips[slot] ?? null);
@@ -228,6 +324,11 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
     for (let slot = 0; slot < CARD_SLOTS; slot += 1) {
       this.cards[slot]?.instance.update(model.cards[slot] ?? null);
     }
+
+    display(this.actionBar, model.actions.length > 0);
+    for (let slot = 0; slot < ACTION_SLOTS; slot += 1) {
+      this.actions[slot]?.instance.update(model.actions[slot] ?? null);
+    }
   }
 
   public render(): VNode {
@@ -248,7 +349,6 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
             <span class="header-label">GSX INTEGRATOR</span>
             <span class="header-status">
               <span class="dot dot-ok" />
-              <span class="header-text" ref={this.headerText} />
             </span>
           </div>
 
@@ -288,6 +388,12 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
                 <AdvisorySlot ref={advisory} />
               ))}
             </div>
+          </div>
+
+          <div class="action-bar" ref={this.actionBar}>
+            {this.actions.map((action) => (
+              <ActionSlot ref={action} onTouch={this.props.onTouch} />
+            ))}
           </div>
         </div>
       </div>

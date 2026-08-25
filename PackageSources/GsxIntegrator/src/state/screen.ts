@@ -45,6 +45,12 @@ export interface Action {
   enabled: boolean;
 }
 
+export interface Touch {
+  label: string;
+  enabled: boolean;
+  phase: number;
+}
+
 export interface ScreenModel {
   connected: boolean;
   statusText: string;
@@ -54,6 +60,7 @@ export interface ScreenModel {
   commandError: CommandError | null;
   cards: DataCard[];
   actions: Action[];
+  touch: Touch | null;
   fault?: string;
 }
 
@@ -82,6 +89,7 @@ function disconnected(fault?: string): ScreenModel {
     commandError: null,
     cards: [],
     actions: [],
+    touch: null,
   };
 
   return fault === undefined ? model : { ...model, fault };
@@ -141,6 +149,7 @@ export function readScreen(raw: unknown): ScreenModel {
     commandError: readCommandError(fields),
     cards: readCards(fields),
     actions: readActions(fields),
+    touch: readTouch(fields),
   };
 }
 
@@ -361,4 +370,15 @@ function readActions(fields: Fields): Action[] {
   return ACTION_SOURCES.map((source) => action(fields, source)).filter(
     (entry): entry is Action => entry !== null,
   );
+}
+
+function readTouch(fields: Fields): Touch | null {
+  const label = text(fields, "pilotTouchLabel");
+  const phase = number(fields, "phase");
+
+  if (label === null || phase === null) {
+    return null;
+  }
+
+  return { label, enabled: flag(fields, "canPilotTouch"), phase };
 }

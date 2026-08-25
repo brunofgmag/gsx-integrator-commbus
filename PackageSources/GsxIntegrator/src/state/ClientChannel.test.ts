@@ -339,3 +339,31 @@ test("a touch with no way back warns instead of throwing", async () => {
 
   assert.equal(warnings.length, 1);
 });
+
+test("the pilot touch carries the phase the screen was showing", async () => {
+  const sent: Array<[string, string]> = [];
+  const listener = {
+    on: () => undefined,
+    callWasm: (channel: string, payload: string) => sent.push([channel, payload]),
+  };
+  const channel = new ClientChannel(() => (onReady) => {
+    queueMicrotask(onReady);
+    return listener;
+  });
+
+  await channel.start(async () => undefined);
+  await new Promise((resolve) => queueMicrotask(() => resolve(null)));
+  sent.length = 0;
+
+  channel.sendTouch(25);
+
+  assert.deepEqual(sent, [
+    [
+      RELAY_CHANNEL,
+      JSON.stringify({
+        channel: COMMAND_CHANNEL,
+        payload: JSON.stringify({ command: "pilotTouch", phase: 25 }),
+      }),
+    ],
+  ]);
+});

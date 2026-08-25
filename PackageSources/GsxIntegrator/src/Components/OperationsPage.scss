@@ -477,6 +477,44 @@
     border-top: 1px solid var(--gsxi-line);
   }
 
+  .touch-button {
+    flex: 1 1 100%;
+    min-width: 0;
+    margin: 0 sx(3px) sy(6px);
+    padding: sy(10px) sx(6px);
+    background: var(--gsxi-panel);
+    color: var(--gsxi-accent);
+    border: 1px solid var(--gsxi-accent);
+    border-radius: var(--gsxi-radius);
+    text-align: center;
+  }
+
+  .touch-label {
+    display: block;
+    text-align: center;
+    font-size: sy(14px);
+    font-weight: bold;
+    letter-spacing: sy(0.8px);
+    text-transform: uppercase;
+    line-height: 1.2;
+    white-space: normal;
+  }
+
+  .touch-button:not(.disabled):hover {
+    background: var(--gsxi-panel2);
+  }
+
+  .touch-button:not(.disabled):active {
+    color: var(--gsxi-text);
+    border-color: var(--gsxi-text);
+  }
+
+  .touch-button.disabled {
+    background: var(--gsxi-panel2);
+    border-color: var(--gsxi-line);
+    color: var(--gsxi-muted);
+  }
+
   .action-button {
     flex: 1 1 40%;
     min-width: 0;

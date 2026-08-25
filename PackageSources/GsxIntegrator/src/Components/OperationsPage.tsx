@@ -2,7 +2,7 @@ import { DisplayComponent, FSComponent } from "@microsoft/msfs-sdk";
 import type { ComponentProps, NodeReference, Subscribable, Subscription, VNode } from "@microsoft/msfs-sdk";
 
 import { ACTION_SLOTS, ADVISORY_SLOTS, CARD_SLOTS, CHIP_SLOTS, ROW_SLOTS } from "../state/screen.ts";
-import type { Action, ActionId, DataCard, DataRow, ScreenModel, StatusChip } from "../state/screen.ts";
+import type { Action, ActionId, DataCard, DataRow, ScreenModel, StatusChip, Touch } from "../state/screen.ts";
 
 import "./OperationsPage.scss";
 
@@ -245,9 +245,62 @@ class ActionSlot extends DisplayComponent<ActionSlotProps> {
   }
 }
 
+interface TouchSlotProps extends ComponentProps {
+  onTouch: (phase: number) => void;
+}
+
+class TouchSlot extends DisplayComponent<TouchSlotProps> {
+  private readonly root = FSComponent.createRef<HTMLButtonElement>();
+  private readonly label = FSComponent.createRef<HTMLSpanElement>();
+
+  private touch: Touch | null = null;
+
+  private readonly onClick = (): void => this.press();
+
+  public onAfterRender(node: VNode): void {
+    super.onAfterRender(node);
+
+    this.root.instance.addEventListener("click", this.onClick);
+  }
+
+  public update(touch: Touch | null): void {
+    display(this.root, touch !== null);
+    this.touch = touch;
+
+    if (touch === null) {
+      return;
+    }
+
+    this.label.instance.textContent = touch.label;
+    this.root.instance.className = `touch-button${touch.enabled ? "" : " disabled"}`;
+  }
+
+  public destroy(): void {
+    this.root.instance.removeEventListener("click", this.onClick);
+    super.destroy();
+  }
+
+  private press(): void {
+    if (this.touch === null || !this.touch.enabled) {
+      return;
+    }
+
+    this.props.onTouch(this.touch.phase);
+  }
+
+  public render(): VNode {
+    return (
+      <button class="touch-button" ref={this.root}>
+        <span class="touch-label" ref={this.label} />
+      </button>
+    );
+  }
+}
+
 export interface OperationsPageProps extends ComponentProps {
   model: Subscribable<ScreenModel>;
   onTouch: (id: ActionId) => void;
+  onPilotTouch: (phase: number) => void;
 }
 
 export class OperationsPage extends DisplayComponent<OperationsPageProps> {
@@ -272,6 +325,7 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
   private readonly advisories = refs<AdvisorySlot>(ADVISORY_SLOTS);
   private readonly cards = refs<CardSlot>(CARD_SLOTS);
   private readonly actions = refs<ActionSlot>(ACTION_SLOTS);
+  private readonly pilotTouch = FSComponent.createRef<TouchSlot>();
   private readonly actionBar = FSComponent.createRef<HTMLDivElement>();
 
   private subscription: Subscription | null = null;
@@ -325,7 +379,8 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
       this.cards[slot]?.instance.update(model.cards[slot] ?? null);
     }
 
-    display(this.actionBar, model.actions.length > 0);
+    display(this.actionBar, model.actions.length > 0 || model.touch !== null);
+    this.pilotTouch.instance.update(model.touch);
     for (let slot = 0; slot < ACTION_SLOTS; slot += 1) {
       this.actions[slot]?.instance.update(model.actions[slot] ?? null);
     }
@@ -392,6 +447,7 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
           </div>
 
           <div class="action-bar" ref={this.actionBar}>
+            <TouchSlot ref={this.pilotTouch} onTouch={this.props.onPilotTouch} />
             {this.actions.map((action) => (
               <ActionSlot ref={action} onTouch={this.props.onTouch} />
             ))}

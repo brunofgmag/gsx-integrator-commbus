@@ -509,3 +509,35 @@ test("the five chips all stand on a label alone, so the strip needs one line", (
     ["Sim", "GSX Pro", "PMDG 737-800", "Turnaround", "Loading"],
   );
 });
+
+test("the touch button says what the touch does in the phase the screen drew", () => {
+  const model = readScreen(
+    payloadWith({ phase: 25, pilotTouchLabel: "Start New Flight", canPilotTouch: true }),
+  );
+
+  assert.deepEqual(model.touch, { label: "Start New Flight", enabled: true, phase: 25 });
+});
+
+test("a phase with nothing to touch draws no touch button", () => {
+  assert.equal(readScreen(FULL_PAYLOAD).touch, null);
+});
+
+test("a touch label without a phase stamp draws no button", () => {
+  const model = readScreen(
+    payloadWithout("phase") .replace("}", ',"pilotTouchLabel":"Start New Flight"}'),
+  );
+
+  assert.equal(model.touch, null);
+});
+
+test("a touch the client refuses arrives disabled instead of absent", () => {
+  const model = readScreen(
+    payloadWith({ phase: 17, pilotTouchLabel: "Confirm Engine Start", canPilotTouch: false }),
+  );
+
+  assert.deepEqual(model.touch, { label: "Confirm Engine Start", enabled: false, phase: 17 });
+});
+
+test("a disconnected screen offers no touch", () => {
+  assert.equal(disconnectedScreen().touch, null);
+});

@@ -138,6 +138,10 @@ export class ClientChannel {
     this.relay(COMMAND_CHANNEL, JSON.stringify({ command }));
   }
 
+  public sendTouch(phase: number): void {
+    this.relay(COMMAND_CHANNEL, JSON.stringify({ command: "pilotTouch", phase }));
+  }
+
   private sayHello(): void {
     this.relay(HELLO_CHANNEL, "hello");
   }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.7.0...v0.7.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **toolbar:** publish the real GSX panel state after registering ([#31](https://github.com/brunofgmag/gsx-integrator-commbus/issues/31)) ([0adcb6a](https://github.com/brunofgmag/gsx-integrator-commbus/commit/0adcb6a7d0a08574057d61542604399ad0ce9df8))
+
 ## [0.7.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.6.0...v0.7.0) (2026-08-25)
 
 

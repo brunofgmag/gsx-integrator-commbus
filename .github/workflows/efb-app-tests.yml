@@ -1,0 +1,36 @@
+name: EFB App Tests
+
+on:
+  pull_request:
+    branches: [ develop, main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: efb-app-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Payload translation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: PackageSources/GsxIntegrator
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      # The pure module and its tests are plain TypeScript that Node strips at
+      # load time, so they run without npm install. Everything the app build
+      # needs comes from the MSFS 2024 SDK, which no runner has.
+      - name: Run tests
+        run: node --test "src/**/*.test.ts"

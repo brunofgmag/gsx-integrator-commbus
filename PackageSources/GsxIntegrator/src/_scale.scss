@@ -1,0 +1,7 @@
+@function sx($px) {
+  @return calc(#{$px} * var(--sx));
+}
+
+@function sy($px) {
+  @return calc(#{$px} * var(--sy));
+}

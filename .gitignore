@@ -8,6 +8,7 @@ _Temp/
 _PubTemp/
 
 # AI/Tools
+CLAUDE.md
 .claude/
 .cursor/
 .copilot/
@@ -26,6 +27,11 @@ docs/
 
 # Compiled WASM artifact
 PackageSources/modules/*.wasm
+
+# EFB app: npm output and the SDK dependencies build.ps1 stages from MSFS2024_SDK
+PackageSources/GsxIntegrator/node_modules/
+PackageSources/GsxIntegrator/dist/
+PackageSources/GsxIntegrator/.sdk/
 
 # Compiled SPB (except the prebuilt one used for CI packaging)
 *.spb

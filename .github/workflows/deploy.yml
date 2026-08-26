@@ -38,7 +38,7 @@ jobs:
           fi
 
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -100,22 +100,26 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.version.outputs.build_ref }}
           fetch-depth: 0
 
-      - name: Provision MSFS 2024 SDK
-        shell: pwsh
-        env:
-          MSFS_SDK_URL: ${{ secrets.MSFS_SDK_URL }}
-          MSFS_SDK_SHA256: ${{ secrets.MSFS_SDK_SHA256 }}
-        run: |
-          if ($env:MSFS_SDK_SHA256) {
-            ./tools/setup-msfs-sdk.ps1 -Url $env:MSFS_SDK_URL -Sha256 $env:MSFS_SDK_SHA256
-          } else {
-            ./tools/setup-msfs-sdk.ps1 -Url $env:MSFS_SDK_URL
-          }
+      - name: Setup environment
+        uses: brunofgmag/gsx-integrator-ci/.github/actions/setup-build-env@main
+        with:
+          install-qt: false
+          sdk-url: ${{ secrets.MSFS_SDK_URL }}
+          sdk-sha256: ${{ secrets.MSFS_SDK_SHA256 }}
+          sdk-env-var: MSFS2024_SDK
+          # The WASM toolchain and the package tool build the module; the EFB sample
+          # carries the efb_api and the vendored msfs-sdk the EFB app is built against.
+          sdk-required-paths: |
+            WASM/llvm/bin/clang++.exe
+            WASM/wasi-sysroot
+            Tools/bin/fspackagetool.exe
+            Samples/DevmodeProjects/EFB/PackageSources/efb_api
+            Samples/DevmodeProjects/EFB/PackageSources/vendor
 
       - name: Build
         shell: pwsh
@@ -150,7 +154,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -159,43 +163,12 @@ jobs:
         with:
           name: release-bundle
 
-      - name: Extract release notes
-        id: notes
-        env:
-          VER: ${{ needs.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          out=release-notes.md
-          if [ -f CHANGELOG.md ]; then
-            awk -v v="$VER" '
-              $0 ~ "^## \\["v"\\]" {f=1; next}
-              f && /^## / {exit}
-              f {print}
-            ' CHANGELOG.md > "$out"
-          fi
-          [ -s "$out" ] || echo "Release v$VER" > "$out"
-          echo "path=$out" >> "$GITHUB_OUTPUT"
-
-      - name: Create tag
-        env:
-          TAG: ${{ needs.version.outputs.tag }}
-        run: |
-          set -euo pipefail
-          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            echo "::notice::Tag $TAG already exists; reusing it."
-          else
-            git config user.name 'github-actions[bot]'
-            git config user.email 'github-actions[bot]@users.noreply.github.com'
-            git tag -a "$TAG" -m "Release $TAG"
-            git push origin "$TAG"
-          fi
-
-      - name: Publish
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+      - name: Publish release
+        uses: brunofgmag/gsx-integrator-ci/.github/actions/publish-release@main
         with:
-          tag_name: ${{ needs.version.outputs.tag }}
-          name: gsx-integrator-commbus ${{ needs.version.outputs.tag }}
-          body_path: ${{ steps.notes.outputs.path }}
-          files: |
+          tag: ${{ needs.version.outputs.tag }}
+          version: ${{ needs.version.outputs.version }}
+          target: ${{ github.sha }}
+          assets: |
             gsx-integrator-commbus-${{ needs.version.outputs.version }}.zip
             gsx-integrator-commbus-${{ needs.version.outputs.version }}.zip.sha256

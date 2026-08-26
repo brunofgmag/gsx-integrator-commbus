@@ -1,0 +1,28 @@
+@use "scale" as *;
+
+.gsx-integrator-app {
+  --sx: calc(var(--panel-width) / var(--base-width, 516));
+  --sy: calc(var(--panel-height) / var(--base-height, 716));
+
+  --gsxi-bg: #0b1016;
+  --gsxi-panel: #121a24;
+  --gsxi-panel2: #0d141c;
+  --gsxi-line: #1e2c3d;
+  --gsxi-text: #e6eef7;
+  --gsxi-muted: #7e91a6;
+  --gsxi-accent: #33bfff;
+  --gsxi-ok: #35d07f;
+  --gsxi-amber: #ffb454;
+  --gsxi-red: #ff5d5d;
+  --gsxi-tip-bg: #231a09;
+  --gsxi-red-bg: #2a1214;
+  --gsxi-tip-fg: #ffce8a;
+  --gsxi-radius: #{sy(4px)};
+  --gsxi-radius-small: #{sy(3px)};
+
+  width: 100%;
+  height: 100%;
+  display: flex;
+  background: var(--gsxi-bg);
+  color: var(--gsxi-text);
+}

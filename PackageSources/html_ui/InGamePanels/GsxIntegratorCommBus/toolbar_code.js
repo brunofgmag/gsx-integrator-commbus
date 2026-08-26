@@ -95,13 +95,24 @@
 		}
 	};
 
-	const attachGsxClickWatcher = () => {
+	const WATCH_RETRY_MS = 1000;
+	const WATCH_MAX_TRIES = 30;
+
+	const watchGsxButton = (triesLeft) => {
 		const btn = findGsxButton();
-		if (!btn || btn.__gsxiWatched) {
+		if (!btn) {
+			if (triesLeft > 0) {
+				setTimeout(() => watchGsxButton(triesLeft - 1), WATCH_RETRY_MS);
+			} else {
+				sendState("unavailable");
+			}
 			return;
 		}
-		btn.__gsxiWatched = true;
-		btn.addEventListener("click", () => setTimeout(() => sendState(readGsxState()), 500));
+		if (!btn.__gsxiWatched) {
+			btn.__gsxiWatched = true;
+			btn.addEventListener("click", () => setTimeout(() => sendState(readGsxState()), 500));
+		}
+		sendState(readGsxState());
 	};
 
 	// Path to the MSFS CommBus service. RegisterCommBusListener (from this file)
@@ -141,6 +152,7 @@
 				listener.callWasm(JS_HELLO_EVENT, "ready");
 			}
 			sendState("ready");
+			watchGsxButton(WATCH_MAX_TRIES);
 			log("CommBus listener ready (callWasm=" + canSend + ")");
 		});
 	};
@@ -172,7 +184,6 @@
 			setTimeout(init, 1000);
 			return;
 		}
-		attachGsxClickWatcher();
 		registerBridge();
 		log("initialized (own button hidden)");
 	};

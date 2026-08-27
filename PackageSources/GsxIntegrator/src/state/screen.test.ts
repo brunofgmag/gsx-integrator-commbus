@@ -221,7 +221,7 @@ test("every advisory the client raised is printed, in the order the window print
   assert.deepEqual(model.advisories, [
     "The GSX profile for this aircraft does not set 'refueling = 0', so the fuel truck never connects the hose. Apply the fix, then restart GSX or reload the flight.",
     "The PMDG options file does not enable the SDK data broadcast, so the client cannot read this aircraft. Apply the fix, then reload the flight.",
-    "A GSX loader is waiting for the main cargo door. Make sure a hydraulic pump is on.",
+    "A GSX loader is waiting for the main deck cargo door. That door runs on hydraulics, so switch the ELEC 2 pump on in the overhead.",
     "GSX took the refuelling request but the truck has not arrived. Check the GSX menu, or another service may be holding it.",
     "Press START LOADING or activate the SmartSwitch to begin refueling and boarding.",
   ]);

@@ -12,7 +12,7 @@
   "canStartFlow": true,
   "canStartLoading": true,
   "cargoAircraft": false,
-  "cargoDoorAdvisoryText": "A GSX loader is waiting for the main cargo door. Make sure a hydraulic pump is on.",
+  "cargoDoorAdvisoryText": "A GSX loader is waiting for the main deck cargo door. That door runs on hydraulics, so switch the ELEC 2 pump on in the overhead.",
   "cargoDoorStuck": true,
   "commandError": "GSX refused the request: menu busy",
   "commandErrorLabel": "Error",

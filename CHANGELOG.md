@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.2](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.7.1...v0.7.2) (2026-08-27)
+
+
+* draw the services and open door advisories the client publishes ([#34](https://github.com/brunofgmag/gsx-integrator-commbus/issues/34)) ([abc7242](https://github.com/brunofgmag/gsx-integrator-commbus/commit/abc72424d089aba46ebc3afdf3ee09d61b5d6503))
+
+
+### Bug Fixes
+
+* **efb:** draw the services and open door advisories the client publishes ([f19f119](https://github.com/brunofgmag/gsx-integrator-commbus/commit/f19f119f77ec9a35c61fba265f00b0f8e6922a57)) ([abc7242](https://github.com/brunofgmag/gsx-integrator-commbus/commit/abc72424d089aba46ebc3afdf3ee09d61b5d6503))
+
 ## [0.7.1](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.7.0...v0.7.1) (2026-08-26)
 
 

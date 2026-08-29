@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.3](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.7.2...v0.7.3) (2026-08-29)
+
+
+* show the fuel-plan-over-capacity advisory the client publishes ([#37](https://github.com/brunofgmag/gsx-integrator-commbus/issues/37)) ([9656b5b](https://github.com/brunofgmag/gsx-integrator-commbus/commit/9656b5bc209b7bdf5cd8987ff5e9036921c30afd))
+
+
+### Bug Fixes
+
+* **efb:** show the fuel-plan-over-capacity advisory the client publishes ([9944a80](https://github.com/brunofgmag/gsx-integrator-commbus/commit/9944a8035daf1087731214a6d1b07ffe6de74f74)) ([9656b5b](https://github.com/brunofgmag/gsx-integrator-commbus/commit/9656b5bc209b7bdf5cd8987ff5e9036921c30afd))
+
 ## [0.7.2](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.7.1...v0.7.2) (2026-08-27)
 
 

@@ -48,7 +48,7 @@ test("the full payload yields every block of the screen", () => {
       ["GSX Pro", "ok"],
       ["PMDG 737-800", "text"],
       ["Turnaround", "ok"],
-      ["Loading", "accent"],
+      ["Loading", "ok"],
     ],
   );
 
@@ -223,7 +223,8 @@ test("every advisory the client raised is printed, in the order the window print
     "The PMDG options file does not enable the SDK data broadcast, so the client cannot read this aircraft. Apply the fix, then reload the flight.",
     "A GSX loader is waiting for the main deck cargo door. That door runs on hydraulics, so switch the ELEC 2 pump on in the overhead.",
     "GSX took the refuelling request but the truck has not arrived. Check the GSX menu, or another service may be holding it.",
-    "GSX is reporting the wrong state. The client moves on in 28 s.",
+    "The flight plan asks for more fuel than this airframe can hold. The tanks will be filled to capacity and no further.",
+    "GSX has not answered the request yet and nothing is moving. The client moves on in 28 s.",
     "A door is open. Close it, or use the SmartSwitch to unlock the pushback.",
     "Press START LOADING or activate the SmartSwitch to begin refueling and boarding.",
   ]);
@@ -236,6 +237,7 @@ test("an advisory whose flag is down is not printed", () => {
       pmdgOptionsConflict: false,
       cargoDoorStuck: false,
       fuelRequestStalled: false,
+      fuelPlanOverCapacity: false,
       servicesStalled: false,
       doorsHoldingPushback: false,
     }),
@@ -249,7 +251,7 @@ test("an advisory whose flag is down is not printed", () => {
 test("an advisory raised without its text is not printed as a blank strip", () => {
   const model = readScreen(payloadWithout("gsxProfileAdvisoryText", "phaseTip"));
 
-  assert.equal(model.advisories.length, 5);
+  assert.equal(model.advisories.length, 6);
   assert.equal(model.advisories.includes(""), false);
 });
 
@@ -421,7 +423,7 @@ test("a button the client refuses arrives disabled instead of absent", () => {
 
   assert.deepEqual(
     model.actions.map((action) => action.enabled),
-    [true, true, false, true],
+    [false, true, true, true],
   );
 });
 

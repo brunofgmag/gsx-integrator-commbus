@@ -65,7 +65,7 @@ export interface ScreenModel {
 
 export const ACTION_SLOTS = 4;
 export const CHIP_SLOTS = 5;
-export const ADVISORY_SLOTS = 8;
+export const ADVISORY_SLOTS = 10;
 export const CARD_SLOTS = 3;
 export const ROW_SLOTS = 3;
 
@@ -220,6 +220,8 @@ function readAdvisories(fields: Fields): string[] {
     flag(fields, "cargoDoorStuck") ? text(fields, "cargoDoorAdvisoryText") : null,
     flag(fields, "fuelRequestStalled") ? text(fields, "fuelRequestAdvisoryText") : null,
     flag(fields, "fuelPlanOverCapacity") ? text(fields, "fuelPlanAdvisoryText") : null,
+    flag(fields, "fuelDidNotStay") ? text(fields, "fuelStayAdvisoryText") : null,
+    flag(fields, "engineConfirmationBlocked") ? text(fields, "engineConfirmationAdvisoryText") : null,
     flag(fields, "servicesStalled") ? text(fields, "servicesAdvisoryText") : null,
     flag(fields, "doorsHoldingPushback") ? text(fields, "openDoorAdvisoryText") : null,
     text(fields, "phaseTip"),

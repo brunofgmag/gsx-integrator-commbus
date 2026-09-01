@@ -224,6 +224,8 @@ test("every advisory the client raised is printed, in the order the window print
     "A GSX loader is waiting for the main deck cargo door. That door runs on hydraulics, so switch the ELEC 2 pump on in the overhead.",
     "GSX took the refuelling request but the truck has not arrived. Check the GSX menu, or another service may be holding it.",
     "The flight plan asks for more fuel than this airframe can hold. The tanks will be filled to capacity and no further.",
+    "942 kg of the fuel did not stay in the tanks. Check the aircraft fuel before you depart.",
+    "The engines are not running, so the SmartSwitch will not confirm the start yet.",
     "GSX has not answered the request yet and nothing is moving. The client moves on in 28 s.",
     "A door is open. Close it, or use the SmartSwitch to unlock the pushback.",
     "Press START LOADING or activate the SmartSwitch to begin refueling and boarding.",
@@ -238,6 +240,8 @@ test("an advisory whose flag is down is not printed", () => {
       cargoDoorStuck: false,
       fuelRequestStalled: false,
       fuelPlanOverCapacity: false,
+      fuelDidNotStay: false,
+      engineConfirmationBlocked: false,
       servicesStalled: false,
       doorsHoldingPushback: false,
     }),
@@ -251,7 +255,7 @@ test("an advisory whose flag is down is not printed", () => {
 test("an advisory raised without its text is not printed as a blank strip", () => {
   const model = readScreen(payloadWithout("gsxProfileAdvisoryText", "phaseTip"));
 
-  assert.equal(model.advisories.length, 6);
+  assert.equal(model.advisories.length, 8);
   assert.equal(model.advisories.includes(""), false);
 });
 

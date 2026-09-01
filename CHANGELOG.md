@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.7.3...v0.8.0) (2026-08-31)
+
+
+* print the fuel-stay and smartswitch advisories the client publishes ([#40](https://github.com/brunofgmag/gsx-integrator-commbus/issues/40)) ([9620fa8](https://github.com/brunofgmag/gsx-integrator-commbus/commit/9620fa850a9930e9accea2941794e29bb45d4a89))
+
+
+### Features
+
+* **efb:** print the fuel-stay and smartswitch advisories the client publishes ([da73d0a](https://github.com/brunofgmag/gsx-integrator-commbus/commit/da73d0a2831d3f1a5cf9d3b79c133ff459e28eb5)) ([9620fa8](https://github.com/brunofgmag/gsx-integrator-commbus/commit/9620fa850a9930e9accea2941794e29bb45d4a89))
+
 ## [0.7.3](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.7.2...v0.7.3) (2026-08-29)
 
 

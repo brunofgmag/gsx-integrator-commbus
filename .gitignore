@@ -8,6 +8,11 @@ _Temp/
 _PubTemp/
 
 # AI/Tools
+AGENTS.md
+AGENTS.local.md
+.opencode/
+opencode.json
+opencode.jsonc
 CLAUDE.md
 .claude/
 .cursor/

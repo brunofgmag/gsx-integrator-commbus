@@ -57,7 +57,7 @@ test("the full payload yields every block of the screen", () => {
     counter: "12/26",
     text: "Waiting for start loading",
     next: "Next ▸ Waiting for beacon & brake",
-    countdown: "Next state in 12s",
+    countdown: "Next state in 12 s",
   });
 
   assert.deepEqual(model.commandError, {
@@ -225,10 +225,11 @@ test("every advisory the client raised is printed, in the order the window print
     "GSX took the refuelling request but the truck has not arrived. Check the GSX menu, or another service may be holding it.",
     "The flight plan asks for more fuel than this airframe can hold. The tanks will be filled to capacity and no further.",
     "942 kg of the fuel did not stay in the tanks. Check the aircraft fuel before you depart.",
-    "The engines are not running, so the SmartSwitch will not confirm the start yet.",
+    "The engines are not running, so the smart switch will not confirm the start yet.",
     "GSX has not answered the request yet and nothing is moving. The client moves on in 28 s.",
-    "A door is open. Close it, or use the SmartSwitch to unlock the pushback.",
-    "Press START LOADING or activate the SmartSwitch to begin refueling and boarding.",
+    "A door is open. Close it, or flip R/T-I/C to R/T to push back with it open.",
+    "GSX stopped a service it had already started. Request it again from the GSX menu and the client will resume the turnaround.",
+    "Press START LOADING or flip R/T-I/C to R/T to begin refueling and boarding.",
   ]);
 });
 
@@ -244,19 +245,31 @@ test("an advisory whose flag is down is not printed", () => {
       engineConfirmationBlocked: false,
       servicesStalled: false,
       doorsHoldingPushback: false,
+      serviceInterrupted: false,
     }),
   );
 
   assert.deepEqual(model.advisories, [
-    "Press START LOADING or activate the SmartSwitch to begin refueling and boarding.",
+    "Press START LOADING or flip R/T-I/C to R/T to begin refueling and boarding.",
   ]);
 });
 
 test("an advisory raised without its text is not printed as a blank strip", () => {
   const model = readScreen(payloadWithout("gsxProfileAdvisoryText", "phaseTip"));
 
-  assert.equal(model.advisories.length, 8);
+  assert.equal(model.advisories.length, 9);
   assert.equal(model.advisories.includes(""), false);
+});
+
+test("the advisory badge carries the word the client prints on its own badge", () => {
+  const model = readScreen(payloadWith({ advisoryLabel: "Aviso" }));
+
+  assert.equal(model.advisoryLabel, "Aviso");
+});
+
+test("a client that publishes no badge word leaves the badge in English", () => {
+  assert.equal(readScreen(payloadWithout("advisoryLabel")).advisoryLabel, "Advisory");
+  assert.equal(disconnectedScreen().advisoryLabel, "Advisory");
 });
 
 test("no fix button reaches the app, because the client never publishes its label", () => {

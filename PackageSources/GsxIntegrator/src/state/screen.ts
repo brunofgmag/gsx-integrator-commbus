@@ -56,6 +56,7 @@ export interface ScreenModel {
   chips: StatusChip[];
   state: StateCard | null;
   advisories: string[];
+  advisoryLabel: string;
   commandError: CommandError | null;
   cards: DataCard[];
   actions: Action[];
@@ -65,12 +66,13 @@ export interface ScreenModel {
 
 export const ACTION_SLOTS = 4;
 export const CHIP_SLOTS = 5;
-export const ADVISORY_SLOTS = 10;
+export const ADVISORY_SLOTS = 11;
 export const CARD_SLOTS = 3;
 export const ROW_SLOTS = 3;
 
 const CONNECTED_TEXT = "CONNECTED";
 const DISCONNECTED_TEXT = "DISCONNECTED";
+const ADVISORY_LABEL = "Advisory";
 
 type Fields = Record<string, unknown>;
 
@@ -85,6 +87,7 @@ function disconnected(fault?: string): ScreenModel {
     chips: [],
     state: null,
     advisories: [],
+    advisoryLabel: ADVISORY_LABEL,
     commandError: null,
     cards: [],
     actions: [],
@@ -145,6 +148,7 @@ export function readScreen(raw: unknown): ScreenModel {
     chips: readChips(fields),
     state: readState(fields),
     advisories: readAdvisories(fields),
+    advisoryLabel: text(fields, "advisoryLabel") ?? ADVISORY_LABEL,
     commandError: readCommandError(fields),
     cards: readCards(fields),
     actions: readActions(fields),
@@ -224,6 +228,7 @@ function readAdvisories(fields: Fields): string[] {
     flag(fields, "engineConfirmationBlocked") ? text(fields, "engineConfirmationAdvisoryText") : null,
     flag(fields, "servicesStalled") ? text(fields, "servicesAdvisoryText") : null,
     flag(fields, "doorsHoldingPushback") ? text(fields, "openDoorAdvisoryText") : null,
+    flag(fields, "serviceInterrupted") ? text(fields, "serviceInterruptedAdvisoryText") : null,
     text(fields, "phaseTip"),
   ];
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.1](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.8.0...v0.8.1) (2026-09-25)
+
+
+* print the service interrupted advisory and the client's badge word ([#44](https://github.com/brunofgmag/gsx-integrator-commbus/issues/44)) ([beddccd](https://github.com/brunofgmag/gsx-integrator-commbus/commit/beddccdaa572290dc6c0b57942609e3d7cd1fb79))
+
+
+### Bug Fixes
+
+* **efb:** print the service interrupted advisory and the client's badge word ([fcdedd3](https://github.com/brunofgmag/gsx-integrator-commbus/commit/fcdedd362b8ea4ff164a7fd491553534bf4f51c6)) ([beddccd](https://github.com/brunofgmag/gsx-integrator-commbus/commit/beddccdaa572290dc6c0b57942609e3d7cd1fb79))
+
 ## [0.8.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.7.3...v0.8.0) (2026-08-31)
 
 

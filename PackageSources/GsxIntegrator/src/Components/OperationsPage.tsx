@@ -125,22 +125,24 @@ class ChipSlot extends DisplayComponent<ComponentProps> {
 
 class AdvisorySlot extends DisplayComponent<ComponentProps> {
   private readonly root = FSComponent.createRef<HTMLDivElement>();
+  private readonly badge = FSComponent.createRef<HTMLSpanElement>();
   private readonly text = FSComponent.createRef<HTMLSpanElement>();
 
-  public update(advisory: string | null): void {
+  public update(advisory: string | null, label: string): void {
     display(this.root, advisory !== null);
 
     if (advisory === null) {
       return;
     }
 
+    this.badge.instance.textContent = label;
     this.text.instance.textContent = advisory;
   }
 
   public render(): VNode {
     return (
       <div class="advisory" ref={this.root}>
-        <span class="advisory-badge">Advisory</span>
+        <span class="advisory-badge" ref={this.badge} />
         <span class="advisory-text" ref={this.text} />
       </div>
     );
@@ -363,7 +365,7 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
     }
 
     for (let slot = 0; slot < ADVISORY_SLOTS; slot += 1) {
-      this.advisories[slot]?.instance.update(model.advisories[slot] ?? null);
+      this.advisories[slot]?.instance.update(model.advisories[slot] ?? null, model.advisoryLabel);
     }
 
     display(this.errorStrip, model.commandError !== null);

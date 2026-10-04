@@ -174,25 +174,53 @@
   }
 
   .chip-strip {
-    display: flex;
-    flex-wrap: wrap;
     min-width: 0;
     margin-bottom: sy(7px);
   }
 
+  .chip-row {
+    display: flex;
+    min-width: 0;
+  }
+
+  .chip-row-modes {
+    justify-content: space-between;
+    margin-top: sy(3px);
+  }
+
   .status-chip {
-    display: inline-flex;
-    align-items: baseline;
-    margin: 0 sx(12px) sy(3px) 0;
+    display: flex;
+    flex: 0 0 auto;
+    margin-right: sx(12px);
     white-space: nowrap;
+  }
+
+  .status-chip:last-child {
+    margin-right: 0;
+  }
+
+  .chip-yield {
+    flex: 0 1 auto;
     min-width: 0;
   }
 
   .chip-text {
+    flex: 0 0 auto;
     font-size: sy(13px);
     font-weight: bold;
     letter-spacing: sy(0.9px);
     text-transform: uppercase;
+  }
+
+  .chip-yield .chip-text {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chip-value {
+    margin-left: sx(6px);
   }
 
   .state-card {

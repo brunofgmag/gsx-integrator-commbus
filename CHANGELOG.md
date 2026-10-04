@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.8.1...v0.9.0) (2026-10-04)
+
+
+* keep the status strip on two fixed rows and show each mode's value ([#47](https://github.com/brunofgmag/gsx-integrator-commbus/issues/47)) ([19d34ef](https://github.com/brunofgmag/gsx-integrator-commbus/commit/19d34efaca71b9a6ba9ab1d85d966fe0dbd47f15))
+
+
+### Features
+
+* **efb:** keep the status strip on two fixed rows and show each mode's value ([afcb1a3](https://github.com/brunofgmag/gsx-integrator-commbus/commit/afcb1a3c1340149510f6bdd9ad7333295b22323d)) ([19d34ef](https://github.com/brunofgmag/gsx-integrator-commbus/commit/19d34efaca71b9a6ba9ab1d85d966fe0dbd47f15))
+
 ## [0.8.1](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.8.0...v0.8.1) (2026-09-25)
 
 

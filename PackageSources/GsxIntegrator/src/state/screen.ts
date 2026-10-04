@@ -1,8 +1,22 @@
 export type Tone = "text" | "muted" | "accent" | "ok" | "warn" | "error";
 
+export interface ChipValue {
+  text: string;
+  tone: Tone;
+}
+
 export interface StatusChip {
   label: string;
-  tone: Tone;
+  labelTone: Tone;
+  value: ChipValue | null;
+}
+
+export interface StatusStrip {
+  sim: StatusChip | null;
+  gsx: StatusChip | null;
+  aircraft: StatusChip | null;
+  turnaround: StatusChip | null;
+  loading: StatusChip | null;
 }
 
 export interface DataRow {
@@ -53,7 +67,7 @@ export interface Touch {
 export interface ScreenModel {
   connected: boolean;
   statusText: string;
-  chips: StatusChip[];
+  strip: StatusStrip;
   state: StateCard | null;
   advisories: string[];
   advisoryLabel: string;
@@ -65,7 +79,6 @@ export interface ScreenModel {
 }
 
 export const ACTION_SLOTS = 4;
-export const CHIP_SLOTS = 5;
 export const ADVISORY_SLOTS = 11;
 export const CARD_SLOTS = 3;
 export const ROW_SLOTS = 3;
@@ -80,11 +93,15 @@ export function disconnectedScreen(): ScreenModel {
   return disconnected();
 }
 
+function emptyStrip(): StatusStrip {
+  return { sim: null, gsx: null, aircraft: null, turnaround: null, loading: null };
+}
+
 function disconnected(fault?: string): ScreenModel {
   const model: ScreenModel = {
     connected: false,
     statusText: DISCONNECTED_TEXT,
-    chips: [],
+    strip: emptyStrip(),
     state: null,
     advisories: [],
     advisoryLabel: ADVISORY_LABEL,
@@ -145,7 +162,7 @@ export function readScreen(raw: unknown): ScreenModel {
   return {
     connected: true,
     statusText: CONNECTED_TEXT,
-    chips: readChips(fields),
+    strip: readStrip(fields),
     state: readState(fields),
     advisories: readAdvisories(fields),
     advisoryLabel: text(fields, "advisoryLabel") ?? ADVISORY_LABEL,
@@ -170,10 +187,29 @@ function number(fields: Fields, key: string): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-function chip(fields: Fields, labelKey: string, tone: Tone): StatusChip | null {
+function chip(fields: Fields, labelKey: string, labelTone: Tone): StatusChip | null {
   const label = text(fields, labelKey);
 
-  return label === null ? null : { label, tone };
+  return label === null ? null : { label, labelTone, value: null };
+}
+
+function modeChip(
+  fields: Fields,
+  labelKey: string,
+  valueKey: string,
+  tone: Tone,
+): StatusChip | null {
+  const label = text(fields, labelKey);
+  if (label === null) {
+    return null;
+  }
+
+  const valueText = text(fields, valueKey);
+  if (valueText === null) {
+    return { label, labelTone: tone, value: null };
+  }
+
+  return { label, labelTone: "muted", value: { text: valueText, tone } };
 }
 
 function modeTone(running: boolean, armed: boolean): Tone {
@@ -184,22 +220,24 @@ function modeTone(running: boolean, armed: boolean): Tone {
   return armed ? "accent" : "muted";
 }
 
-function readChips(fields: Fields): StatusChip[] {
-  return [
-    chip(fields, "simLabel", "ok"),
-    chip(fields, "gsxLabel", flag(fields, "gsxAvailable") ? "ok" : "warn"),
-    chip(fields, "aircraftNameText", flag(fields, "aircraftSupported") ? "text" : "muted"),
-    chip(
+function readStrip(fields: Fields): StatusStrip {
+  return {
+    sim: chip(fields, "simLabel", "ok"),
+    gsx: chip(fields, "gsxLabel", flag(fields, "gsxAvailable") ? "ok" : "warn"),
+    aircraft: chip(fields, "aircraftNameText", flag(fields, "aircraftSupported") ? "text" : "muted"),
+    turnaround: modeChip(
       fields,
       "turnaroundModeLabel",
+      "turnaroundModeText",
       modeTone(flag(fields, "enabled"), flag(fields, "autoStartFlow")),
     ),
-    chip(
+    loading: modeChip(
       fields,
       "loadingModeLabel",
+      "loadingModeText",
       modeTone(flag(fields, "loadingRunning"), flag(fields, "autoStartLoading")),
     ),
-  ].filter((entry): entry is StatusChip => entry !== null);
+  };
 }
 
 function readState(fields: Fields): StateCard | null {

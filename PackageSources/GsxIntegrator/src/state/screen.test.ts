@@ -7,12 +7,11 @@ import {
   ACTION_SLOTS,
   ADVISORY_SLOTS,
   CARD_SLOTS,
-  CHIP_SLOTS,
   ROW_SLOTS,
   disconnectedScreen,
   readScreen,
 } from "./screen.ts";
-import type { DataCard, ScreenModel } from "./screen.ts";
+import type { DataCard, ScreenModel, StatusChip } from "./screen.ts";
 
 const FULL_PAYLOAD = readFileSync(
   join(process.cwd(), "src/state/__fixtures__/full-payload.json"),
@@ -31,6 +30,14 @@ function payloadWith(overrides: Record<string, unknown>): string {
   return JSON.stringify({ ...(JSON.parse(FULL_PAYLOAD) as object), ...overrides });
 }
 
+function chipAsText(chip: StatusChip | null): unknown {
+  if (chip === null) {
+    return null;
+  }
+
+  return [chip.label, chip.labelTone, chip.value?.text ?? null, chip.value?.tone ?? null];
+}
+
 function cardTitled(model: ScreenModel, title: string): DataCard | undefined {
   return model.cards.find((card) => card.title === title);
 }
@@ -41,16 +48,11 @@ test("the full payload yields every block of the screen", () => {
   assert.equal(model.connected, true);
   assert.equal(model.fault, undefined);
 
-  assert.deepEqual(
-    model.chips.map((chip) => [chip.label, chip.tone]),
-    [
-      ["Sim", "ok"],
-      ["GSX Pro", "ok"],
-      ["PMDG 737-800", "text"],
-      ["Turnaround", "ok"],
-      ["Loading", "ok"],
-    ],
-  );
+  assert.deepEqual(chipAsText(model.strip.sim), ["Sim", "ok", null, null]);
+  assert.deepEqual(chipAsText(model.strip.gsx), ["GSX Pro", "ok", null, null]);
+  assert.deepEqual(chipAsText(model.strip.aircraft), ["PMDG 737-800", "text", null, null]);
+  assert.deepEqual(chipAsText(model.strip.turnaround), ["Turnaround", "muted", "Auto · On", "ok"]);
+  assert.deepEqual(chipAsText(model.strip.loading), ["Loading", "muted", "Auto", "ok"]);
 
   assert.deepEqual(model.state, {
     title: "Turnaround state",
@@ -315,10 +317,11 @@ test("a client that is not talking to the sim or to GSX warns on both chips", ()
     }),
   );
 
-  assert.deepEqual(
-    model.chips.map((chip) => chip.tone),
-    ["ok", "warn", "muted", "muted", "muted"],
-  );
+  assert.equal(model.strip.sim?.labelTone, "ok");
+  assert.equal(model.strip.gsx?.labelTone, "warn");
+  assert.equal(model.strip.aircraft?.labelTone, "muted");
+  assert.equal(model.strip.turnaround?.value?.tone, "muted");
+  assert.equal(model.strip.loading?.value?.tone, "muted");
 });
 
 test("no command error yields no error strip", () => {
@@ -394,11 +397,18 @@ test("a client that goes away wipes the turnaround instead of freezing the last 
   const model = readScreen(payloadWith({ connected: false }));
 
   assert.equal(model.statusText, "DISCONNECTED");
-  assert.deepEqual(model.chips, []);
   assert.equal(model.state, null);
   assert.deepEqual(model.advisories, []);
   assert.deepEqual(model.cards, []);
   assert.equal(model.commandError, null);
+});
+
+test("a disconnected screen draws all five strip fields empty", () => {
+  const expected = { sim: null, gsx: null, aircraft: null, turnaround: null, loading: null };
+
+  assert.deepEqual(disconnectedScreen().strip, expected);
+  assert.deepEqual(readScreen(payloadWith({ connected: false })).strip, expected);
+  assert.deepEqual(readScreen("not json").strip, expected);
 });
 
 test("the departure payload says the same thing as a full payload gone dark", () => {
@@ -412,7 +422,6 @@ test("the disconnected model and a departure payload say the same thing", () => 
 test("the model never outgrows the slots the page draws", () => {
   const model = readScreen(FULL_PAYLOAD);
 
-  assert.ok(model.chips.length <= CHIP_SLOTS, `${model.chips.length} chips`);
   assert.ok(model.advisories.length <= ADVISORY_SLOTS, `${model.advisories.length} advisories`);
   assert.ok(model.cards.length <= CARD_SLOTS, `${model.cards.length} cards`);
   assert.ok(model.actions.length <= ACTION_SLOTS, `${model.actions.length} actions`);
@@ -471,59 +480,104 @@ test("a disconnected screen offers no button to press", () => {
 test("the two chips that only ever say yes or no carry it in the tone alone", () => {
   const connected = readScreen(FULL_PAYLOAD);
 
-  assert.deepEqual(
-    connected.chips.slice(0, 2).map((chip) => chip.label),
-    ["Sim", "GSX Pro"],
-  );
+  assert.equal(connected.strip.sim?.label, "Sim");
+  assert.equal(connected.strip.gsx?.label, "GSX Pro");
+  assert.equal(connected.strip.sim?.value, null);
+  assert.equal(connected.strip.gsx?.value, null);
 
   const offline = readScreen(payloadWith({ gsxAvailable: false, gsxStatusText: "Offline" }));
 
-  assert.deepEqual(
-    offline.chips.slice(0, 2).map((chip) => chip.tone),
-    ["ok", "warn"],
-  );
+  assert.equal(offline.strip.sim?.labelTone, "ok");
+  assert.equal(offline.strip.gsx?.labelTone, "warn");
 });
 
-test("the turnaround and loading chips read grey stopped, blue armed, green running", () => {
-  const tones = (fields: Record<string, unknown>): string[] =>
-    readScreen(payloadWith(fields))
-      .chips.slice(3)
-      .map((chip) => chip.tone);
+const MODE_STATES = [
+  {
+    fields: { enabled: false, autoStartFlow: false, loadingRunning: false, autoStartLoading: false },
+    tone: "muted",
+    why: "parado e manual e cinza",
+  },
+  {
+    fields: { enabled: false, autoStartFlow: true, loadingRunning: false, autoStartLoading: true },
+    tone: "accent",
+    why: "armado para automatico e azul",
+  },
+  {
+    fields: { enabled: true, autoStartFlow: false, loadingRunning: true, autoStartLoading: false },
+    tone: "ok",
+    why: "rodando e verde, mesmo em manual",
+  },
+];
 
-  assert.deepEqual(
-    tones({ enabled: false, autoStartFlow: false, loadingRunning: false, autoStartLoading: false }),
-    ["muted", "muted"],
-    "parado e manual e cinza",
-  );
+test("the mode values read grey stopped, blue armed, green running, and their labels stay grey", () => {
+  for (const { fields, tone, why } of MODE_STATES) {
+    const strip = readScreen(payloadWith(fields)).strip;
 
-  assert.deepEqual(
-    tones({ enabled: false, autoStartFlow: true, loadingRunning: false, autoStartLoading: true }),
-    ["accent", "accent"],
-    "armado para automatico e azul",
-  );
+    for (const mode of [strip.turnaround, strip.loading]) {
+      assert.equal(mode?.value?.tone, tone, why);
+      assert.equal(mode?.labelTone, "muted", why);
+    }
+  }
+});
 
-  assert.deepEqual(
-    tones({ enabled: true, autoStartFlow: false, loadingRunning: true, autoStartLoading: false }),
-    ["ok", "ok"],
-    "rodando e verde, mesmo em manual",
-  );
+test("a client without the mode text puts the mode tone on the label, as the screen did before", () => {
+  for (const { fields, tone, why } of MODE_STATES) {
+    const strip = readScreen(
+      JSON.stringify({
+        ...(JSON.parse(payloadWithout("turnaroundModeText", "loadingModeText")) as object),
+        ...fields,
+      }),
+    ).strip;
+
+    for (const mode of [strip.turnaround, strip.loading]) {
+      assert.equal(mode?.value, null, why);
+      assert.equal(mode?.labelTone, tone, why);
+    }
+  }
+});
+
+test("each mode takes its value from its own text field", () => {
+  const strip = readScreen(
+    payloadWith({ turnaroundModeText: "Manual", loadingModeText: "Auto · Off" }),
+  ).strip;
+
+  assert.equal(strip.turnaround?.value?.text, "Manual");
+  assert.equal(strip.loading?.value?.text, "Auto · Off");
+});
+
+test("a mode without its label draws nothing", () => {
+  const strip = readScreen(payloadWithout("turnaroundModeLabel", "loadingModeLabel")).strip;
+
+  assert.equal(strip.turnaround, null);
+  assert.equal(strip.loading, null);
 });
 
 test("the aircraft chip drops the label and stands on the name alone", () => {
   const model = readScreen(payloadWith({ aircraftNameText: "Fenix A320", aircraftSupported: true }));
-  const aircraft = model.chips[2];
 
-  assert.equal(aircraft?.label, "Fenix A320");
-  assert.equal(aircraft?.tone, "text");
+  assert.equal(model.strip.aircraft?.label, "Fenix A320");
+  assert.equal(model.strip.aircraft?.labelTone, "text");
 });
 
-test("the five chips all stand on a label alone, so the strip needs one line", () => {
-  const model = readScreen(FULL_PAYLOAD);
+test("without an aircraft name the modes keep their own fields and their values", () => {
+  const strip = readScreen(payloadWithout("aircraftNameText")).strip;
 
-  assert.deepEqual(
-    model.chips.map((chip) => chip.label),
-    ["Sim", "GSX Pro", "PMDG 737-800", "Turnaround", "Loading"],
-  );
+  assert.equal(strip.aircraft, null);
+  assert.deepEqual(chipAsText(strip.turnaround), ["Turnaround", "muted", "Auto · On", "ok"]);
+  assert.deepEqual(chipAsText(strip.loading), ["Loading", "muted", "Auto", "ok"]);
+});
+
+test("sim, GSX and aircraft stand on a label alone and the two modes carry a value beside a grey label", () => {
+  const strip = readScreen(FULL_PAYLOAD).strip;
+
+  for (const field of [strip.sim, strip.gsx, strip.aircraft]) {
+    assert.equal(field?.value, null);
+  }
+
+  for (const field of [strip.turnaround, strip.loading]) {
+    assert.notEqual(field?.value, null);
+    assert.equal(field?.labelTone, "muted");
+  }
 });
 
 test("the touch button says what the touch does in the phase the screen drew", () => {

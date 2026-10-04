@@ -1,7 +1,7 @@
 import { DisplayComponent, FSComponent } from "@microsoft/msfs-sdk";
 import type { ComponentProps, NodeReference, Subscribable, Subscription, VNode } from "@microsoft/msfs-sdk";
 
-import { ACTION_SLOTS, ADVISORY_SLOTS, CARD_SLOTS, CHIP_SLOTS, ROW_SLOTS } from "../state/screen.ts";
+import { ACTION_SLOTS, ADVISORY_SLOTS, CARD_SLOTS, ROW_SLOTS } from "../state/screen.ts";
 import type { Action, ActionId, DataCard, DataRow, ScreenModel, StatusChip, Touch } from "../state/screen.ts";
 
 import "./OperationsPage.scss";
@@ -99,9 +99,14 @@ class CardSlot extends DisplayComponent<ComponentProps> {
   }
 }
 
-class ChipSlot extends DisplayComponent<ComponentProps> {
+interface ChipSlotProps extends ComponentProps {
+  extraClass?: string;
+}
+
+class ChipSlot extends DisplayComponent<ChipSlotProps> {
   private readonly root = FSComponent.createRef<HTMLDivElement>();
   private readonly text = FSComponent.createRef<HTMLSpanElement>();
+  private readonly value = FSComponent.createRef<HTMLSpanElement>();
 
   public update(chip: StatusChip | null): void {
     display(this.root, chip !== null);
@@ -111,13 +116,23 @@ class ChipSlot extends DisplayComponent<ComponentProps> {
     }
 
     this.text.instance.textContent = chip.label;
-    this.text.instance.className = `chip-text tone-${chip.tone}`;
+    this.text.instance.className = `chip-text tone-${chip.labelTone}`;
+
+    display(this.value, chip.value !== null);
+
+    if (chip.value !== null) {
+      this.value.instance.textContent = chip.value.text;
+      this.value.instance.className = `chip-text chip-value tone-${chip.value.tone}`;
+    }
   }
 
   public render(): VNode {
+    const extra = this.props.extraClass === undefined ? "" : ` ${this.props.extraClass}`;
+
     return (
-      <span class="status-chip" ref={this.root}>
+      <span class={`status-chip${extra}`} ref={this.root}>
         <span class="chip-text" ref={this.text} />
+        <span class="chip-text chip-value" ref={this.value} />
       </span>
     );
   }
@@ -322,7 +337,11 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
   private readonly errorLabel = FSComponent.createRef<HTMLSpanElement>();
   private readonly errorText = FSComponent.createRef<HTMLSpanElement>();
 
-  private readonly chips = refs<ChipSlot>(CHIP_SLOTS);
+  private readonly simChip = FSComponent.createRef<ChipSlot>();
+  private readonly gsxChip = FSComponent.createRef<ChipSlot>();
+  private readonly aircraftChip = FSComponent.createRef<ChipSlot>();
+  private readonly turnaroundChip = FSComponent.createRef<ChipSlot>();
+  private readonly loadingChip = FSComponent.createRef<ChipSlot>();
   private readonly advisories = refs<AdvisorySlot>(ADVISORY_SLOTS);
   private readonly cards = refs<CardSlot>(CARD_SLOTS);
   private readonly actions = refs<ActionSlot>(ACTION_SLOTS);
@@ -350,9 +369,11 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
     this.offlineDot.instance.className = model.connected ? "dot dot-ok" : "dot dot-off";
     this.offlineText.instance.textContent = model.statusText;
 
-    for (let slot = 0; slot < CHIP_SLOTS; slot += 1) {
-      this.chips[slot]?.instance.update(model.chips[slot] ?? null);
-    }
+    this.simChip.instance.update(model.strip.sim);
+    this.gsxChip.instance.update(model.strip.gsx);
+    this.aircraftChip.instance.update(model.strip.aircraft);
+    this.turnaroundChip.instance.update(model.strip.turnaround);
+    this.loadingChip.instance.update(model.strip.loading);
 
     display(this.stateCard, model.state !== null);
     if (model.state !== null) {
@@ -409,9 +430,15 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
 
           <div class="page-body">
             <div class="chip-strip">
-              {this.chips.map((chip) => (
-                <ChipSlot ref={chip} />
-              ))}
+              <div class="chip-row">
+                <ChipSlot ref={this.simChip} />
+                <ChipSlot ref={this.gsxChip} />
+                <ChipSlot ref={this.aircraftChip} extraClass="chip-yield" />
+              </div>
+              <div class="chip-row chip-row-modes">
+                <ChipSlot ref={this.turnaroundChip} />
+                <ChipSlot ref={this.loadingChip} />
+              </div>
             </div>
 
             <div class="state-card" ref={this.stateCard}>

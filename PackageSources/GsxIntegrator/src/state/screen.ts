@@ -79,7 +79,7 @@ export interface ScreenModel {
 }
 
 export const ACTION_SLOTS = 4;
-export const ADVISORY_SLOTS = 11;
+export const ADVISORY_SLOTS = 12;
 export const CARD_SLOTS = 3;
 export const ROW_SLOTS = 3;
 
@@ -260,6 +260,7 @@ function readAdvisories(fields: Fields): string[] {
     flag(fields, "gsxProfileConflict") ? text(fields, "gsxProfileAdvisoryText") : null,
     flag(fields, "pmdgOptionsConflict") ? text(fields, "pmdgOptionsAdvisoryText") : null,
     flag(fields, "cargoDoorStuck") ? text(fields, "cargoDoorAdvisoryText") : null,
+    flag(fields, "ownStairsWaitingForPressure") ? text(fields, "ownStairsPressureAdvisoryText") : null,
     flag(fields, "fuelRequestStalled") ? text(fields, "fuelRequestAdvisoryText") : null,
     flag(fields, "fuelPlanOverCapacity") ? text(fields, "fuelPlanAdvisoryText") : null,
     flag(fields, "fuelDidNotStay") ? text(fields, "fuelStayAdvisoryText") : null,

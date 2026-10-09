@@ -224,6 +224,7 @@ test("every advisory the client raised is printed, in the order the window print
     "The GSX profile for this aircraft does not set 'refueling = 0', so the fuel truck never connects the hose. Apply the fix, then restart GSX or reload the flight.",
     "The PMDG options file does not enable the SDK data broadcast, so the client cannot read this aircraft. Apply the fix, then reload the flight.",
     "A GSX loader is waiting for the main deck cargo door. That door runs on hydraulics, so switch the ELEC 2 pump on in the overhead.",
+    "The airstair has no accumulator pressure. Switch the AC pump on to recharge it, and the client will move the airstair once the pressure is back.",
     "GSX took the refuelling request but the truck has not arrived. Check the GSX menu, or another service may be holding it.",
     "The flight plan asks for more fuel than this airframe can hold. The tanks will be filled to capacity and no further.",
     "942 kg of the fuel did not stay in the tanks. Check the aircraft fuel before you depart.",
@@ -241,6 +242,7 @@ test("an advisory whose flag is down is not printed", () => {
       gsxProfileConflict: false,
       pmdgOptionsConflict: false,
       cargoDoorStuck: false,
+      ownStairsWaitingForPressure: false,
       fuelRequestStalled: false,
       fuelPlanOverCapacity: false,
       fuelDidNotStay: false,
@@ -256,10 +258,31 @@ test("an advisory whose flag is down is not printed", () => {
   ]);
 });
 
+test("the airstair pressure advisory sits right after the cargo door advisory", () => {
+  const advisories = readScreen(FULL_PAYLOAD).advisories;
+  const cargoDoor = advisories.findIndex((entry) => entry.startsWith("A GSX loader is waiting"));
+  const airstair = advisories.findIndex((entry) => entry.startsWith("The airstair has no accumulator pressure"));
+
+  assert.notEqual(cargoDoor, -1);
+  assert.equal(airstair, cargoDoor + 1);
+});
+
+test("the airstair pressure advisory is not printed while its flag is down or absent", () => {
+  const lowered = readScreen(payloadWith({ ownStairsWaitingForPressure: false }));
+  const absent = readScreen(payloadWithout("ownStairsWaitingForPressure"));
+
+  for (const model of [lowered, absent]) {
+    assert.equal(
+      model.advisories.some((entry) => entry.startsWith("The airstair has no accumulator pressure")),
+      false,
+    );
+  }
+});
+
 test("an advisory raised without its text is not printed as a blank strip", () => {
   const model = readScreen(payloadWithout("gsxProfileAdvisoryText", "phaseTip"));
 
-  assert.equal(model.advisories.length, 9);
+  assert.equal(model.advisories.length, 10);
   assert.equal(model.advisories.includes(""), false);
 });
 

@@ -51,6 +51,8 @@
   "loadingRunning": true,
   "nextPhaseText": "Next ▸ Waiting for beacon & brake",
   "openDoorAdvisoryText": "A door is open. Close it, or flip R/T-I/C to R/T to push back with it open.",
+  "ownStairsPressureAdvisoryText": "The airstair has no accumulator pressure. Switch the AC pump on to recharge it, and the client will move the airstair once the pressure is back.",
+  "ownStairsWaitingForPressure": true,
   "paxCardLabel": "Boarding",
   "paxCountText": "69 / 162",
   "paxLabel": "Pax",

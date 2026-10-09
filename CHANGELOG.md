@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.10.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.9.0...v0.10.0) (2026-10-09)
+
+
+* print the airstair pressure advisory the client raises ([#50](https://github.com/brunofgmag/gsx-integrator-commbus/issues/50)) ([cc49b32](https://github.com/brunofgmag/gsx-integrator-commbus/commit/cc49b3221f56a5029068ac1ec6a6ba0bfd5df599))
+
+
+### Features
+
+* print the airstair pressure advisory the client raises ([5fc15c5](https://github.com/brunofgmag/gsx-integrator-commbus/commit/5fc15c522b3fca3299ef89b527a31d4b4841546c)) ([cc49b32](https://github.com/brunofgmag/gsx-integrator-commbus/commit/cc49b3221f56a5029068ac1ec6a6ba0bfd5df599))
+
 ## [0.9.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.8.1...v0.9.0) (2026-10-04)
 
 

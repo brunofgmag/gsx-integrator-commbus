@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.11.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.10.0...v0.11.0) (2026-10-10)
+
+
+* ask the resume decision in the efb app with the texts the client publishes ([#52](https://github.com/brunofgmag/gsx-integrator-commbus/issues/52)) ([9533b55](https://github.com/brunofgmag/gsx-integrator-commbus/commit/9533b5532f4cfadd89877546373380b1b743a644))
+
+
+### Features
+
+* ask the resume decision in the efb app with the texts the client publishes ([e21efd3](https://github.com/brunofgmag/gsx-integrator-commbus/commit/e21efd3cb64666e1eb4da0aebf1f3af1619834a5)) ([9533b55](https://github.com/brunofgmag/gsx-integrator-commbus/commit/9533b5532f4cfadd89877546373380b1b743a644))
+
 ## [0.10.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.9.0...v0.10.0) (2026-10-09)
 
 

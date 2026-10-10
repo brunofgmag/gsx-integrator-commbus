@@ -44,6 +44,7 @@ class GsxIntegratorView extends AppView<RequiredProps<AppViewProps, "bus">> {
         <OperationsPage
           model={this.model}
           onTouch={(id) => clientChannel.send(id)}
+          onDecide={(command) => clientChannel.send(command)}
           onPilotTouch={(phase) => clientChannel.sendTouch(phase)}
         />
       </div>

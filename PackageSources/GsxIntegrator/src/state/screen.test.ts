@@ -634,3 +634,72 @@ test("a touch the client refuses arrives disabled instead of absent", () => {
 test("a disconnected screen offers no touch", () => {
   assert.equal(disconnectedScreen().touch, null);
 });
+
+const RESUME_DECISION_PAYLOAD = readFileSync(
+  join(process.cwd(), "src/state/__fixtures__/resume-decision-payload.json"),
+  "utf8",
+);
+
+test("a pending resume decision draws the client's question and its two answers", () => {
+  const model = readScreen(RESUME_DECISION_PAYLOAD);
+
+  assert.deepEqual(model.decision, {
+    text: "GSX restarted since this turnaround was saved. Resume it if the aircraft is still as you left it, or restart the flow to start over.",
+    buttons: [
+      { command: "resumeTurnaround", label: "Resume turnaround" },
+      { command: "restartFlow", label: "Restart Flow" },
+    ],
+  });
+});
+
+test("the resume decision is not one of the advisory strips", () => {
+  const model = readScreen(RESUME_DECISION_PAYLOAD);
+
+  assert.equal(model.advisories.includes(model.decision?.text ?? ""), false);
+  assert.equal(model.advisories.length, readScreen(FULL_PAYLOAD).advisories.length);
+});
+
+test("a client that publishes no resume fields draws the screen it always drew", () => {
+  const today = readScreen(FULL_PAYLOAD);
+  const asking = readScreen(RESUME_DECISION_PAYLOAD);
+
+  assert.equal(today.decision, null);
+  assert.deepEqual({ ...asking, decision: null }, today);
+});
+
+test("a resume decision already answered draws no question and no button", () => {
+  const model = readScreen(
+    payloadWith({ resumeDecisionAdvisoryText: "", resumeTurnaroundLabel: "" }),
+  );
+
+  assert.equal(model.decision, null);
+});
+
+test("a resume label without a question draws no button", () => {
+  const model = readScreen(payloadWith({ resumeTurnaroundLabel: "Resume turnaround" }));
+
+  assert.equal(model.decision, null);
+});
+
+test("a question without a resume label keeps the question and offers only the restart", () => {
+  const model = readScreen(RESUME_DECISION_PAYLOAD.replace('"Resume turnaround"', '""'));
+
+  assert.deepEqual(
+    model.decision?.buttons.map((button) => button.command),
+    ["restartFlow"],
+  );
+});
+
+test("a question without a restart label keeps the question and offers only the resume", () => {
+  const asking = JSON.parse(RESUME_DECISION_PAYLOAD) as Record<string, unknown>;
+  delete asking["restartFlowLabel"];
+
+  assert.deepEqual(
+    readScreen(JSON.stringify(asking)).decision?.buttons.map((button) => button.command),
+    ["resumeTurnaround"],
+  );
+});
+
+test("the disconnected screen asks no resume decision", () => {
+  assert.equal(disconnectedScreen().decision, null);
+});

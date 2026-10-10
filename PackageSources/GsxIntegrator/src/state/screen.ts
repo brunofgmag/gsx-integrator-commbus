@@ -58,6 +58,18 @@ export interface Action {
   enabled: boolean;
 }
 
+export type DecisionCommand = "resumeTurnaround" | "restartFlow";
+
+export interface DecisionButton {
+  command: DecisionCommand;
+  label: string;
+}
+
+export interface ResumeDecision {
+  text: string;
+  buttons: DecisionButton[];
+}
+
 export interface Touch {
   label: string;
   enabled: boolean;
@@ -71,6 +83,7 @@ export interface ScreenModel {
   state: StateCard | null;
   advisories: string[];
   advisoryLabel: string;
+  decision: ResumeDecision | null;
   commandError: CommandError | null;
   cards: DataCard[];
   actions: Action[];
@@ -79,6 +92,7 @@ export interface ScreenModel {
 }
 
 export const ACTION_SLOTS = 4;
+export const DECISION_SLOTS = 2;
 export const ADVISORY_SLOTS = 12;
 export const CARD_SLOTS = 3;
 export const ROW_SLOTS = 3;
@@ -105,6 +119,7 @@ function disconnected(fault?: string): ScreenModel {
     state: null,
     advisories: [],
     advisoryLabel: ADVISORY_LABEL,
+    decision: null,
     commandError: null,
     cards: [],
     actions: [],
@@ -166,6 +181,7 @@ export function readScreen(raw: unknown): ScreenModel {
     state: readState(fields),
     advisories: readAdvisories(fields),
     advisoryLabel: text(fields, "advisoryLabel") ?? ADVISORY_LABEL,
+    decision: readDecision(fields),
     commandError: readCommandError(fields),
     cards: readCards(fields),
     actions: readActions(fields),
@@ -272,6 +288,31 @@ function readAdvisories(fields: Fields): string[] {
   ];
 
   return raised.filter((entry): entry is string => entry !== null);
+}
+
+function decisionButton(
+  fields: Fields,
+  command: DecisionCommand,
+  labelKey: string,
+): DecisionButton[] {
+  const label = text(fields, labelKey);
+
+  return label === null ? [] : [{ command, label }];
+}
+
+function readDecision(fields: Fields): ResumeDecision | null {
+  const question = text(fields, "resumeDecisionAdvisoryText");
+  if (question === null) {
+    return null;
+  }
+
+  return {
+    text: question,
+    buttons: [
+      ...decisionButton(fields, "resumeTurnaround", "resumeTurnaroundLabel"),
+      ...decisionButton(fields, "restartFlow", "restartFlowLabel"),
+    ],
+  };
 }
 
 function readCommandError(fields: Fields): CommandError | null {

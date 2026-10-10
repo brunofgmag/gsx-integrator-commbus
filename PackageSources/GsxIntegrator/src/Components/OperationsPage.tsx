@@ -1,8 +1,19 @@
 import { DisplayComponent, FSComponent } from "@microsoft/msfs-sdk";
 import type { ComponentProps, NodeReference, Subscribable, Subscription, VNode } from "@microsoft/msfs-sdk";
 
-import { ACTION_SLOTS, ADVISORY_SLOTS, CARD_SLOTS, ROW_SLOTS } from "../state/screen.ts";
-import type { Action, ActionId, DataCard, DataRow, ScreenModel, StatusChip, Touch } from "../state/screen.ts";
+import { ACTION_SLOTS, ADVISORY_SLOTS, CARD_SLOTS, DECISION_SLOTS, ROW_SLOTS } from "../state/screen.ts";
+import type {
+  Action,
+  ActionId,
+  DataCard,
+  DataRow,
+  DecisionButton,
+  DecisionCommand,
+  ResumeDecision,
+  ScreenModel,
+  StatusChip,
+  Touch,
+} from "../state/screen.ts";
 
 import "./OperationsPage.scss";
 
@@ -164,6 +175,100 @@ class AdvisorySlot extends DisplayComponent<ComponentProps> {
   }
 }
 
+const PRIMARY_COMMAND: DecisionCommand = "resumeTurnaround";
+
+interface DecisionButtonSlotProps extends ComponentProps {
+  onTouch: (command: DecisionCommand) => void;
+}
+
+class DecisionButtonSlot extends DisplayComponent<DecisionButtonSlotProps> {
+  private readonly root = FSComponent.createRef<HTMLButtonElement>();
+  private readonly label = FSComponent.createRef<HTMLSpanElement>();
+
+  private button: DecisionButton | null = null;
+
+  private readonly onClick = (): void => this.press();
+
+  public onAfterRender(node: VNode): void {
+    super.onAfterRender(node);
+
+    this.root.instance.addEventListener("click", this.onClick);
+  }
+
+  public update(button: DecisionButton | null): void {
+    display(this.root, button !== null);
+    this.button = button;
+
+    if (button === null) {
+      return;
+    }
+
+    this.label.instance.textContent = button.label;
+
+    const kind = button.command === PRIMARY_COMMAND ? "decision-primary" : "decision-secondary";
+    this.root.instance.className = `decision-button ${kind}`;
+  }
+
+  public destroy(): void {
+    this.root.instance.removeEventListener("click", this.onClick);
+    super.destroy();
+  }
+
+  private press(): void {
+    if (this.button !== null) {
+      this.props.onTouch(this.button.command);
+    }
+  }
+
+  public render(): VNode {
+    return (
+      <button class="decision-button" ref={this.root}>
+        <span class="decision-label" ref={this.label} />
+      </button>
+    );
+  }
+}
+
+interface DecisionSlotProps extends ComponentProps {
+  onTouch: (command: DecisionCommand) => void;
+}
+
+class DecisionSlot extends DisplayComponent<DecisionSlotProps> {
+  private readonly root = FSComponent.createRef<HTMLDivElement>();
+  private readonly badge = FSComponent.createRef<HTMLSpanElement>();
+  private readonly text = FSComponent.createRef<HTMLSpanElement>();
+  private readonly buttons = refs<DecisionButtonSlot>(DECISION_SLOTS);
+
+  public update(decision: ResumeDecision | null, label: string): void {
+    display(this.root, decision !== null);
+
+    if (decision === null) {
+      return;
+    }
+
+    this.badge.instance.textContent = label;
+    this.text.instance.textContent = decision.text;
+
+    for (let slot = 0; slot < DECISION_SLOTS; slot += 1) {
+      this.buttons[slot]?.instance.update(decision.buttons[slot] ?? null);
+    }
+  }
+
+  public render(): VNode {
+    return (
+      <div class="advisory advisory-decision" ref={this.root}>
+        <span class="advisory-badge" ref={this.badge} />
+        <span class="advisory-text" ref={this.text} />
+        <div class="decision-actions">
+          {this.buttons.map((button) => (
+            <DecisionButtonSlot ref={button} onTouch={this.props.onTouch} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+}
+
 const DISARM_MS = 3000;
 
 interface ActionSlotProps extends ComponentProps {
@@ -317,6 +422,7 @@ class TouchSlot extends DisplayComponent<TouchSlotProps> {
 export interface OperationsPageProps extends ComponentProps {
   model: Subscribable<ScreenModel>;
   onTouch: (id: ActionId) => void;
+  onDecide: (command: DecisionCommand) => void;
   onPilotTouch: (phase: number) => void;
 }
 
@@ -342,6 +448,7 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
   private readonly aircraftChip = FSComponent.createRef<ChipSlot>();
   private readonly turnaroundChip = FSComponent.createRef<ChipSlot>();
   private readonly loadingChip = FSComponent.createRef<ChipSlot>();
+  private readonly decision = FSComponent.createRef<DecisionSlot>();
   private readonly advisories = refs<AdvisorySlot>(ADVISORY_SLOTS);
   private readonly cards = refs<CardSlot>(CARD_SLOTS);
   private readonly actions = refs<ActionSlot>(ACTION_SLOTS);
@@ -384,6 +491,8 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
       display(this.countdown, model.state.countdown !== "");
       this.countdown.instance.textContent = model.state.countdown;
     }
+
+    this.decision.instance.update(model.decision, model.advisoryLabel);
 
     for (let slot = 0; slot < ADVISORY_SLOTS; slot += 1) {
       this.advisories[slot]?.instance.update(model.advisories[slot] ?? null, model.advisoryLabel);
@@ -463,6 +572,8 @@ export class OperationsPage extends DisplayComponent<OperationsPageProps> {
               <span class="error-badge" ref={this.errorLabel} />
               <span class="error-text" ref={this.errorText} />
             </div>
+
+            <DecisionSlot ref={this.decision} onTouch={this.props.onDecide} />
 
             <div class="advisory-list">
               {this.advisories.map((advisory) => (

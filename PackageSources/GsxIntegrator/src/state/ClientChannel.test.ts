@@ -1,5 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import {
   ANSWER_DEADLINE_MS,
@@ -11,6 +13,11 @@ import {
   SILENCE_MS,
   STATE_CHANNEL,
 } from "./ClientChannel.ts";
+
+const RESUME_DECISION_PAYLOAD = readFileSync(
+  join(process.cwd(), "src/state/__fixtures__/resume-decision-payload.json"),
+  "utf8",
+);
 
 test("a channel that has heard nothing reports disconnected", () => {
   const channel = new ClientChannel();
@@ -366,4 +373,52 @@ test("the pilot touch carries the phase the screen was showing", async () => {
       }),
     ],
   ]);
+});
+
+async function connectedChannel(sent: Array<[string, string]>): Promise<ClientChannel> {
+  const listener = {
+    on: () => undefined,
+    callWasm: (channel: string, payload: string) => sent.push([channel, payload]),
+  };
+  const channel = new ClientChannel(() => (onReady) => {
+    queueMicrotask(onReady);
+    return listener;
+  });
+
+  await channel.start(async () => undefined);
+  await new Promise((resolve) => queueMicrotask(() => resolve(null)));
+  sent.length = 0;
+
+  return channel;
+}
+
+function relayedCommand(command: string): [string, string] {
+  return [
+    RELAY_CHANNEL,
+    JSON.stringify({ channel: COMMAND_CHANNEL, payload: JSON.stringify({ command }) }),
+  ];
+}
+
+test("touching resume on the question sends the command the client accepts to resume", async () => {
+  const sent: Array<[string, string]> = [];
+  const channel = await connectedChannel(sent);
+  channel.accept(RESUME_DECISION_PAYLOAD);
+
+  const resume = channel.current.decision?.buttons.find((button) => button.label === "Resume turnaround");
+  assert.notEqual(resume, undefined);
+  channel.send(resume?.command ?? "");
+
+  assert.deepEqual(sent, [relayedCommand("resumeTurnaround")]);
+});
+
+test("touching restart on the question sends the restart command the window already sends", async () => {
+  const sent: Array<[string, string]> = [];
+  const channel = await connectedChannel(sent);
+  channel.accept(RESUME_DECISION_PAYLOAD);
+
+  const restart = channel.current.decision?.buttons.find((button) => button.label === "Restart Flow");
+  assert.notEqual(restart, undefined);
+  channel.send(restart?.command ?? "");
+
+  assert.deepEqual(sent, [relayedCommand("restartFlow")]);
 });

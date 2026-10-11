@@ -224,6 +224,7 @@ test("every advisory the client raised is printed, in the order the window print
     "The GSX profile for this aircraft does not set 'refueling = 0', so the fuel truck never connects the hose. Apply the fix, then restart GSX or reload the flight.",
     "The PMDG options file does not enable the SDK data broadcast, so the client cannot read this aircraft. Apply the fix, then reload the flight.",
     "A GSX loader is waiting for the main deck cargo door. That door runs on hydraulics, so switch the ELEC 2 pump on in the overhead.",
+    "The airstair has no accumulator pressure. Switch the AC pump on to recharge it, and the client will move the airstair once the pressure is back.",
     "GSX took the refuelling request but the truck has not arrived. Check the GSX menu, or another service may be holding it.",
     "The flight plan asks for more fuel than this airframe can hold. The tanks will be filled to capacity and no further.",
     "942 kg of the fuel did not stay in the tanks. Check the aircraft fuel before you depart.",
@@ -241,6 +242,7 @@ test("an advisory whose flag is down is not printed", () => {
       gsxProfileConflict: false,
       pmdgOptionsConflict: false,
       cargoDoorStuck: false,
+      ownStairsWaitingForPressure: false,
       fuelRequestStalled: false,
       fuelPlanOverCapacity: false,
       fuelDidNotStay: false,
@@ -256,10 +258,31 @@ test("an advisory whose flag is down is not printed", () => {
   ]);
 });
 
+test("the airstair pressure advisory sits right after the cargo door advisory", () => {
+  const advisories = readScreen(FULL_PAYLOAD).advisories;
+  const cargoDoor = advisories.findIndex((entry) => entry.startsWith("A GSX loader is waiting"));
+  const airstair = advisories.findIndex((entry) => entry.startsWith("The airstair has no accumulator pressure"));
+
+  assert.notEqual(cargoDoor, -1);
+  assert.equal(airstair, cargoDoor + 1);
+});
+
+test("the airstair pressure advisory is not printed while its flag is down or absent", () => {
+  const lowered = readScreen(payloadWith({ ownStairsWaitingForPressure: false }));
+  const absent = readScreen(payloadWithout("ownStairsWaitingForPressure"));
+
+  for (const model of [lowered, absent]) {
+    assert.equal(
+      model.advisories.some((entry) => entry.startsWith("The airstair has no accumulator pressure")),
+      false,
+    );
+  }
+});
+
 test("an advisory raised without its text is not printed as a blank strip", () => {
   const model = readScreen(payloadWithout("gsxProfileAdvisoryText", "phaseTip"));
 
-  assert.equal(model.advisories.length, 9);
+  assert.equal(model.advisories.length, 10);
   assert.equal(model.advisories.includes(""), false);
 });
 
@@ -610,4 +633,73 @@ test("a touch the client refuses arrives disabled instead of absent", () => {
 
 test("a disconnected screen offers no touch", () => {
   assert.equal(disconnectedScreen().touch, null);
+});
+
+const RESUME_DECISION_PAYLOAD = readFileSync(
+  join(process.cwd(), "src/state/__fixtures__/resume-decision-payload.json"),
+  "utf8",
+);
+
+test("a pending resume decision draws the client's question and its two answers", () => {
+  const model = readScreen(RESUME_DECISION_PAYLOAD);
+
+  assert.deepEqual(model.decision, {
+    text: "GSX restarted since this turnaround was saved. Resume it if the aircraft is still as you left it, or restart the flow to start over.",
+    buttons: [
+      { command: "resumeTurnaround", label: "Resume turnaround" },
+      { command: "restartFlow", label: "Restart Flow" },
+    ],
+  });
+});
+
+test("the resume decision is not one of the advisory strips", () => {
+  const model = readScreen(RESUME_DECISION_PAYLOAD);
+
+  assert.equal(model.advisories.includes(model.decision?.text ?? ""), false);
+  assert.equal(model.advisories.length, readScreen(FULL_PAYLOAD).advisories.length);
+});
+
+test("a client that publishes no resume fields draws the screen it always drew", () => {
+  const today = readScreen(FULL_PAYLOAD);
+  const asking = readScreen(RESUME_DECISION_PAYLOAD);
+
+  assert.equal(today.decision, null);
+  assert.deepEqual({ ...asking, decision: null }, today);
+});
+
+test("a resume decision already answered draws no question and no button", () => {
+  const model = readScreen(
+    payloadWith({ resumeDecisionAdvisoryText: "", resumeTurnaroundLabel: "" }),
+  );
+
+  assert.equal(model.decision, null);
+});
+
+test("a resume label without a question draws no button", () => {
+  const model = readScreen(payloadWith({ resumeTurnaroundLabel: "Resume turnaround" }));
+
+  assert.equal(model.decision, null);
+});
+
+test("a question without a resume label keeps the question and offers only the restart", () => {
+  const model = readScreen(RESUME_DECISION_PAYLOAD.replace('"Resume turnaround"', '""'));
+
+  assert.deepEqual(
+    model.decision?.buttons.map((button) => button.command),
+    ["restartFlow"],
+  );
+});
+
+test("a question without a restart label keeps the question and offers only the resume", () => {
+  const asking = JSON.parse(RESUME_DECISION_PAYLOAD) as Record<string, unknown>;
+  delete asking["restartFlowLabel"];
+
+  assert.deepEqual(
+    readScreen(JSON.stringify(asking)).decision?.buttons.map((button) => button.command),
+    ["resumeTurnaround"],
+  );
+});
+
+test("the disconnected screen asks no resume decision", () => {
+  assert.equal(disconnectedScreen().decision, null);
 });

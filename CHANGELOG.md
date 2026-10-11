@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.11.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.10.0...v0.11.0) (2026-10-10)
+
+
+* ask the resume decision in the efb app with the texts the client publishes ([#52](https://github.com/brunofgmag/gsx-integrator-commbus/issues/52)) ([9533b55](https://github.com/brunofgmag/gsx-integrator-commbus/commit/9533b5532f4cfadd89877546373380b1b743a644))
+
+
+### Features
+
+* ask the resume decision in the efb app with the texts the client publishes ([e21efd3](https://github.com/brunofgmag/gsx-integrator-commbus/commit/e21efd3cb64666e1eb4da0aebf1f3af1619834a5)) ([9533b55](https://github.com/brunofgmag/gsx-integrator-commbus/commit/9533b5532f4cfadd89877546373380b1b743a644))
+
+## [0.10.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.9.0...v0.10.0) (2026-10-09)
+
+
+* print the airstair pressure advisory the client raises ([#50](https://github.com/brunofgmag/gsx-integrator-commbus/issues/50)) ([cc49b32](https://github.com/brunofgmag/gsx-integrator-commbus/commit/cc49b3221f56a5029068ac1ec6a6ba0bfd5df599))
+
+
+### Features
+
+* print the airstair pressure advisory the client raises ([5fc15c5](https://github.com/brunofgmag/gsx-integrator-commbus/commit/5fc15c522b3fca3299ef89b527a31d4b4841546c)) ([cc49b32](https://github.com/brunofgmag/gsx-integrator-commbus/commit/cc49b3221f56a5029068ac1ec6a6ba0bfd5df599))
+
 ## [0.9.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.8.1...v0.9.0) (2026-10-04)
 
 

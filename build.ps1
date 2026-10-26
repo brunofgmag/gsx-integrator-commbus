@@ -83,9 +83,10 @@ Write-Host '==> Building EFB app'
 # stray package.json further up the tree is enough to make --prefix look right.
 Push-Location $EfbApp
 try {
-    & npm.cmd install --no-audit --no-fund
+    $npmCommand = if ($IsWindows) { 'npm.cmd' } else { 'npm' }
+    & $npmCommand install --no-audit --no-fund
     if ($LASTEXITCODE -ne 0) { throw "npm install failed (exit $LASTEXITCODE)." }
-    & npm.cmd run build
+    & $npmCommand run build
     if ($LASTEXITCODE -ne 0) { throw "EFB app build failed (exit $LASTEXITCODE)." }
 }
 finally {
@@ -148,7 +149,15 @@ if ($NoSim) {
     [ordered]@{ content = $content } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $Output 'layout.json') -Encoding utf8NoBOM
 }
 else {
-    $RunningSimulator = Get-Process FlightSimulator2024 -ErrorAction SilentlyContinue
+    $RunningSimulator = if ($IsWindows) {
+        Get-Process FlightSimulator2024 -ErrorAction SilentlyContinue
+    }
+    else {
+        Get-Process | Where-Object {
+            $argv = (Get-Content -Raw -LiteralPath "/proc/$($_.Id)/cmdline" -ErrorAction SilentlyContinue) -split "`0"
+            $argv[0] -match 'FlightSimulator2024\.exe$'
+        }
+    }
     if ($RunningSimulator) {
         throw 'Close Microsoft Flight Simulator 2024 before running the command-line Package Tool.'
     }
@@ -159,10 +168,18 @@ else {
     }
 
     $ProjectFile = Join-Path $Root 'gsx-integrator-commbus.xml'
+    $PackageToolArguments = @('-rebuild', '-mirroring', '-nopause')
     Write-Host "==> Packaging GSX Integrator CommBus Module"
-    & $PackageTool $ProjectFile -rebuild -mirroring -nopause
-    if ($LASTEXITCODE -ne 0) {
-        throw "Package build failed (exit $LASTEXITCODE)."
+    if ($IsWindows) {
+        & $PackageTool $ProjectFile @PackageToolArguments
+        $PackageToolExit = $LASTEXITCODE
+    }
+    else {
+        . (Join-Path $Root 'tools\proton-package-tool.ps1')
+        $PackageToolExit = Invoke-PackageToolUnderProton $PackageTool $ProjectFile $PackageToolArguments
+    }
+    if ($PackageToolExit -ne 0) {
+        throw "Package build failed (exit $PackageToolExit)."
     }
 }
 

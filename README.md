@@ -44,6 +44,8 @@ To uninstall, delete the folder from `Community`.
 
 The EFB app's dependencies come from the SDK's EFB sample. `build.ps1` copies them into `PackageSources/GsxIntegrator/.sdk/` before running npm.
 
+It also builds on Linux, with PowerShell 7 and the simulator installed through Steam and Proton. The SDK's clang is a Windows program, so you need Wine registered with `binfmt_misc` to run `.exe` files directly, and `winepath` on the `PATH`. Without `-NoSim`, the script runs `fspackagetool` inside the simulator's Proton prefix. It reads Steam's files to find the simulator and the Proton version Steam assigned to it. To use a different Proton, set `MSFS2024_PROTON` to its `proton` script. Steam must be running and the simulator closed.
+
 The app's payload reader is plain TypeScript with no simulator dependency, so its tests run on Node alone:
 
 ```

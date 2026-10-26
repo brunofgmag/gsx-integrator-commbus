@@ -222,9 +222,11 @@ test("every advisory the client raised is printed, in the order the window print
 
   assert.deepEqual(model.advisories, [
     "The GSX profile for this aircraft does not set 'refueling = 0', so the fuel truck never connects the hose. Apply the fix, then restart GSX or reload the flight.",
+    "A GSX profile with 'refueling = 0' is recommended for this aircraft. The client fuels it either way; the setting keeps the GSX truck from writing to the tanks while it does.",
     "The PMDG options file does not enable the SDK data broadcast, so the client cannot read this aircraft. Apply the fix, then reload the flight.",
     "A GSX loader is waiting for the main deck cargo door. That door runs on hydraulics, so switch the ELEC 2 pump on in the overhead.",
     "The airstair has no accumulator pressure. Switch the AC pump on to recharge it, and the client will move the airstair once the pressure is back.",
+    "Remove the chocks and disconnect the ground power in the aircraft's EFB. Pushback waits until both are gone.",
     "GSX took the refuelling request but the truck has not arrived. Check the GSX menu, or another service may be holding it.",
     "The flight plan asks for more fuel than this airframe can hold. The tanks will be filled to capacity and no further.",
     "942 kg of the fuel did not stay in the tanks. Check the aircraft fuel before you depart.",
@@ -240,9 +242,11 @@ test("an advisory whose flag is down is not printed", () => {
   const model = readScreen(
     payloadWith({
       gsxProfileConflict: false,
+      gsxProfileRefuelingRecommended: false,
       pmdgOptionsConflict: false,
       cargoDoorStuck: false,
       ownStairsWaitingForPressure: false,
+      ownGroundEquipmentAttached: false,
       fuelRequestStalled: false,
       fuelPlanOverCapacity: false,
       fuelDidNotStay: false,
@@ -279,10 +283,52 @@ test("the airstair pressure advisory is not printed while its flag is down or ab
   }
 });
 
+test("the profile recommendation sits right after the profile conflict advisory", () => {
+  const advisories = readScreen(FULL_PAYLOAD).advisories;
+  const conflict = advisories.findIndex((entry) => entry.startsWith("The GSX profile for this aircraft does not set"));
+  const recommendation = advisories.findIndex((entry) => entry.startsWith("A GSX profile with 'refueling = 0' is recommended"));
+
+  assert.notEqual(conflict, -1);
+  assert.equal(recommendation, conflict + 1);
+});
+
+test("the profile recommendation is not printed while its flag is down or absent", () => {
+  const lowered = readScreen(payloadWith({ gsxProfileRefuelingRecommended: false }));
+  const absent = readScreen(payloadWithout("gsxProfileRefuelingRecommended"));
+
+  for (const model of [lowered, absent]) {
+    assert.equal(
+      model.advisories.some((entry) => entry.startsWith("A GSX profile with 'refueling = 0' is recommended")),
+      false,
+    );
+  }
+});
+
+test("the ground equipment advisory sits right after the airstair advisory", () => {
+  const advisories = readScreen(FULL_PAYLOAD).advisories;
+  const airstair = advisories.findIndex((entry) => entry.startsWith("The airstair has no accumulator pressure"));
+  const equipment = advisories.findIndex((entry) => entry.startsWith("Remove the chocks and disconnect the ground power"));
+
+  assert.notEqual(airstair, -1);
+  assert.equal(equipment, airstair + 1);
+});
+
+test("the ground equipment advisory is not printed while its flag is down or absent", () => {
+  const lowered = readScreen(payloadWith({ ownGroundEquipmentAttached: false }));
+  const absent = readScreen(payloadWithout("ownGroundEquipmentAttached"));
+
+  for (const model of [lowered, absent]) {
+    assert.equal(
+      model.advisories.some((entry) => entry.startsWith("Remove the chocks and disconnect the ground power")),
+      false,
+    );
+  }
+});
+
 test("an advisory raised without its text is not printed as a blank strip", () => {
   const model = readScreen(payloadWithout("gsxProfileAdvisoryText", "phaseTip"));
 
-  assert.equal(model.advisories.length, 10);
+  assert.equal(model.advisories.length, 12);
   assert.equal(model.advisories.includes(""), false);
 });
 

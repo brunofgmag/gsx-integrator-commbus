@@ -63,6 +63,19 @@ execute_process(
     ERROR_QUIET
 )
 
+if(_CLANG_RESOURCE_DIR AND NOT CMAKE_HOST_WIN32 AND _CLANG_RESOURCE_DIR MATCHES "^[A-Za-z]:")
+    find_program(WINEPATH_PROG NAMES winepath)
+    if(NOT WINEPATH_PROG)
+        message(FATAL_ERROR "The SDK clang runs under Wine and reported ${_CLANG_RESOURCE_DIR}; winepath is needed to read that path.")
+    endif()
+    execute_process(
+        COMMAND "${WINEPATH_PROG}" -u "${_CLANG_RESOURCE_DIR}"
+        OUTPUT_VARIABLE _CLANG_RESOURCE_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+endif()
+
 if(_CLANG_RESOURCE_DIR)
     set(_RT_SRC "${MSFS_SDK}/WASM/wasi-sysroot/lib/wasm32-wasi/libclang_rt.builtins-wasm32.a")
     set(_RT_DST_DIR "${_CLANG_RESOURCE_DIR}/lib/wasi")

@@ -234,6 +234,7 @@ test("every advisory the client raised is printed, in the order the window print
     "GSX has not answered the request yet and nothing is moving. The client moves on in 28 s.",
     "A door is open. Close it, or flip R/T-I/C to R/T to push back with it open.",
     "GSX stopped a service it had already started. Request it again from the GSX menu and the client will resume the turnaround.",
+    "A GSX menu you opened is on screen. Close it so the client can send its next request.",
     "Press START LOADING or flip R/T-I/C to R/T to begin refueling and boarding.",
   ]);
 });
@@ -254,6 +255,7 @@ test("an advisory whose flag is down is not printed", () => {
       servicesStalled: false,
       doorsHoldingPushback: false,
       serviceInterrupted: false,
+      gsxMenuHeldByPilot: false,
     }),
   );
 
@@ -325,10 +327,43 @@ test("the ground equipment advisory is not printed while its flag is down or abs
   }
 });
 
+test("the held menu advisory sits right after the interrupted service advisory", () => {
+  const advisories = readScreen(FULL_PAYLOAD).advisories;
+  const interrupted = advisories.findIndex((entry) => entry.startsWith("GSX stopped a service it had already started"));
+  const held = advisories.findIndex((entry) => entry.startsWith("A GSX menu you opened is on screen"));
+
+  assert.notEqual(interrupted, -1);
+  assert.equal(held, interrupted + 1);
+});
+
+test("the held menu advisory is not printed while its flag is down or absent", () => {
+  const lowered = readScreen(payloadWith({ gsxMenuHeldByPilot: false }));
+  const absent = readScreen(payloadWithout("gsxMenuHeldByPilot"));
+
+  for (const model of [lowered, absent]) {
+    assert.equal(
+      model.advisories.some((entry) => entry.startsWith("A GSX menu you opened is on screen")),
+      false,
+    );
+  }
+});
+
+test("the held menu advisory is printed in the words the client published", () => {
+  const model = readScreen(
+    payloadWith({ gsxMenuHeldByPilotAdvisoryText: "Um menu do GSX está aberto. Feche-o." }),
+  );
+
+  assert.equal(model.advisories.includes("Um menu do GSX está aberto. Feche-o."), true);
+  assert.equal(
+    model.advisories.some((entry) => entry.startsWith("A GSX menu you opened is on screen")),
+    false,
+  );
+});
+
 test("an advisory raised without its text is not printed as a blank strip", () => {
   const model = readScreen(payloadWithout("gsxProfileAdvisoryText", "phaseTip"));
 
-  assert.equal(model.advisories.length, 12);
+  assert.equal(model.advisories.length, 13);
   assert.equal(model.advisories.includes(""), false);
 });
 

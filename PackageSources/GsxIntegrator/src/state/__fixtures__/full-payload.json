@@ -38,6 +38,8 @@
   "fuelRequestStalled": true,
   "gsxAvailable": true,
   "gsxLabel": "GSX Pro",
+  "gsxMenuHeldByPilot": true,
+  "gsxMenuHeldByPilotAdvisoryText": "A GSX menu you opened is on screen. Close it so the client can send its next request.",
   "gsxProfileAdvisoryText": "The GSX profile for this aircraft does not set 'refueling = 0', so the fuel truck never connects the hose. Apply the fix, then restart GSX or reload the flight.",
   "gsxProfileConflict": true,
   "gsxProfileFixable": true,

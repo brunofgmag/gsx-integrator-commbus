@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.12.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.11.0...v0.12.0) (2026-10-27)
+
+
+* show the BBS 757 ground equipment and GSX profile advisories ([#57](https://github.com/brunofgmag/gsx-integrator-commbus/issues/57)) ([a2a48da](https://github.com/brunofgmag/gsx-integrator-commbus/commit/a2a48dace87fe83294a74087c196ea48dfc714b1))
+
+
+### Features
+
+* **efb:** show the BBS 757 ground equipment and GSX profile advisories ([7c4dd4b](https://github.com/brunofgmag/gsx-integrator-commbus/commit/7c4dd4baec4a4580e1259281545fe5485232590e)) ([a2a48da](https://github.com/brunofgmag/gsx-integrator-commbus/commit/a2a48dace87fe83294a74087c196ea48dfc714b1))
+
+
+### Bug Fixes
+
+* **build:** build and package on linux through wine and the simulator's proton ([25d50ec](https://github.com/brunofgmag/gsx-integrator-commbus/commit/25d50ec3b91e5b20cc661176a5d9df3f20d7816b))
+* **build:** build and package on linux through wine and the simulator's proton ([#56](https://github.com/brunofgmag/gsx-integrator-commbus/issues/56)) ([47112fd](https://github.com/brunofgmag/gsx-integrator-commbus/commit/47112fd0b6880a2adbd1097f849298b9be4d1977))
+
 ## [0.11.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.10.0...v0.11.0) (2026-10-10)
 
 

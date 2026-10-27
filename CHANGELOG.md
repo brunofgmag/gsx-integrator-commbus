@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.13.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.12.0...v0.13.0) (2026-10-27)
+
+
+* show the advisory for a GSX menu the pilot left open ([#59](https://github.com/brunofgmag/gsx-integrator-commbus/issues/59)) ([394e5dc](https://github.com/brunofgmag/gsx-integrator-commbus/commit/394e5dca4420194469c09c0e1e813ede8f88f373))
+
+
+### Features
+
+* **efb:** show the advisory for a GSX menu the pilot left open ([8fb4f2a](https://github.com/brunofgmag/gsx-integrator-commbus/commit/8fb4f2a27dd54f80d9e73bf19e2e5e883ea3ed1f)) ([394e5dc](https://github.com/brunofgmag/gsx-integrator-commbus/commit/394e5dca4420194469c09c0e1e813ede8f88f373))
+
 ## [0.12.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.11.0...v0.12.0) (2026-10-27)
 
 

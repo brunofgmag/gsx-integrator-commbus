@@ -93,7 +93,7 @@ export interface ScreenModel {
 
 export const ACTION_SLOTS = 4;
 export const DECISION_SLOTS = 2;
-export const ADVISORY_SLOTS = 15;
+export const ADVISORY_SLOTS = 16;
 export const CARD_SLOTS = 3;
 export const ROW_SLOTS = 3;
 
@@ -287,6 +287,7 @@ function readAdvisories(fields: Fields): string[] {
     flag(fields, "doorsHoldingPushback") ? text(fields, "openDoorAdvisoryText") : null,
     flag(fields, "serviceInterrupted") ? text(fields, "serviceInterruptedAdvisoryText") : null,
     flag(fields, "gsxMenuHeldByPilot") ? text(fields, "gsxMenuHeldByPilotAdvisoryText") : null,
+    flag(fields, "groundEquipmentTimedOut") ? text(fields, "groundEquipmentTimedOutAdvisoryText") : null,
     text(fields, "phaseTip"),
   ];
 

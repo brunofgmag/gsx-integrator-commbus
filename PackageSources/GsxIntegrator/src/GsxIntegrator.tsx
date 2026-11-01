@@ -3,7 +3,7 @@ import type { AppInstallProps, AppViewProps, RequiredProps, TVNode } from "@efb/
 import { FSComponent, Subject } from "@microsoft/msfs-sdk";
 import type { VNode } from "@microsoft/msfs-sdk";
 
-import { clientChannel, COMMBUS_SERVICE, POLL_MS } from "./state/ClientChannel.ts";
+import { clientChannel, COMMBUS_SERVICE, loadCommBusService, POLL_MS } from "./state/ClientChannel.ts";
 import { OperationsPage } from "./Components/OperationsPage.tsx";
 import type { ScreenModel } from "./state/screen.ts";
 
@@ -67,7 +67,7 @@ class GsxIntegrator extends App {
 
   public async install(_props: AppInstallProps): Promise<void> {
     await loadOnce(() => Efb.loadCss(`${BASE_URL}/GsxIntegrator.css`));
-    await clientChannel.start(() => loadOnce(() => Efb.loadJs(COMMBUS_SERVICE)));
+    await clientChannel.start(() => loadCommBusService(() => loadOnce(() => Efb.loadJs(COMMBUS_SERVICE))));
 
     window.setInterval(() => clientChannel.poll(Date.now()), POLL_MS);
   }

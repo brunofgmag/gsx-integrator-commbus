@@ -10,6 +10,8 @@ export const COMMBUS_SERVICE = "/JS/Services/CommBus.js";
 export const SILENCE_MS = 5000;
 export const ANSWER_DEADLINE_MS = 5000;
 export const POLL_MS = 1000;
+export const SERVICE_WAIT_MS = 10000;
+export const SERVICE_POLL_MS = 100;
 
 export type ScreenListener = (model: ScreenModel) => void;
 
@@ -27,6 +29,26 @@ declare const global: unknown;
 
 function simulatorScope(): Record<string, unknown> {
   return (typeof window !== "undefined" ? window : global) as Record<string, unknown>;
+}
+
+function isCommBusServiceRunning(): boolean {
+  return typeof simulatorScope()["RegisterCommBusListener"] === "function";
+}
+
+function pauseFor(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function loadCommBusService(
+  load: () => Promise<void>,
+  isRunning: () => boolean = isCommBusServiceRunning,
+  pause: (ms: number) => Promise<void> = pauseFor,
+): Promise<void> {
+  await load();
+
+  for (let waited = 0; !isRunning() && waited < SERVICE_WAIT_MS; waited += SERVICE_POLL_MS) {
+    await pause(SERVICE_POLL_MS);
+  }
 }
 
 function simulatorListenerFactory(): ListenerFactory | undefined {

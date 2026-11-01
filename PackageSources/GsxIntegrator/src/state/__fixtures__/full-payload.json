@@ -36,6 +36,8 @@
   "fuelRateText": "0.8 kg/s",
   "fuelRequestAdvisoryText": "GSX took the refuelling request but the truck has not arrived. Check the GSX menu, or another service may be holding it.",
   "fuelRequestStalled": true,
+  "groundEquipmentTimedOut": true,
+  "groundEquipmentTimedOutAdvisoryText": "The ground power or the chocks were not in place after 4 minutes, so the turnaround went on without them.",
   "gsxAvailable": true,
   "gsxLabel": "GSX Pro",
   "gsxMenuHeldByPilot": true,

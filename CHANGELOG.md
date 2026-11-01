@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.14.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.13.0...v0.14.0) (2026-10-28)
+
+
+* show the advisory when the ground equipment misses its 4-minute ceiling ([#62](https://github.com/brunofgmag/gsx-integrator-commbus/issues/62)) ([0278e9e](https://github.com/brunofgmag/gsx-integrator-commbus/commit/0278e9e0346217204c666fb90ed4720bed7389fd))
+
+
+### Features
+
+* **efb:** show the advisory when the ground equipment misses its 4-minute ceiling ([2e0896b](https://github.com/brunofgmag/gsx-integrator-commbus/commit/2e0896b333e70739bdc88f913a6aa0c94d314b5e)) ([0278e9e](https://github.com/brunofgmag/gsx-integrator-commbus/commit/0278e9e0346217204c666fb90ed4720bed7389fd))
+
 ## [0.13.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.12.0...v0.13.0) (2026-10-27)
 
 

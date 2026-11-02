@@ -9,7 +9,10 @@ import {
   COMMAND_CHANNEL,
   COMMBUS_SERVICE,
   HELLO_CHANNEL,
+  loadCommBusService,
   RELAY_CHANNEL,
+  SERVICE_POLL_MS,
+  SERVICE_WAIT_MS,
   SILENCE_MS,
   STATE_CHANNEL,
 } from "./ClientChannel.ts";
@@ -164,6 +167,78 @@ test("a simulator with no listener factory leaves the app disconnected without t
 
   assert.equal(channel.current.connected, false);
   assert.equal(warnings.length, 1);
+});
+
+test("a service already running is not waited for", async () => {
+  const pauses: number[] = [];
+
+  await loadCommBusService(
+    async () => undefined,
+    () => true,
+    async (ms) => {
+      pauses.push(ms);
+    },
+  );
+
+  assert.deepEqual(pauses, []);
+});
+
+test("a service another app is still loading is waited for until it runs", async () => {
+  let checks = 0;
+  const pauses: number[] = [];
+
+  await loadCommBusService(
+    async () => undefined,
+    () => {
+      checks += 1;
+      return checks > 2;
+    },
+    async (ms) => {
+      pauses.push(ms);
+    },
+  );
+
+  assert.deepEqual(pauses, [SERVICE_POLL_MS, SERVICE_POLL_MS]);
+});
+
+test("a service that never runs stops the wait at the ceiling", async () => {
+  const pauses: number[] = [];
+
+  await loadCommBusService(
+    async () => undefined,
+    () => false,
+    async (ms) => {
+      pauses.push(ms);
+    },
+  );
+
+  assert.equal(pauses.length, SERVICE_WAIT_MS / SERVICE_POLL_MS);
+});
+
+test("a service another app started loading still gives the app a way to speak", async () => {
+  const scope = global as unknown as Record<string, unknown>;
+  const sent: string[] = [];
+  scope["RegisterViewListener"] = () => ({ on: () => undefined });
+
+  const channel = new ClientChannel();
+  await channel.start(() =>
+    loadCommBusService(
+      async () => undefined,
+      () => typeof scope["RegisterCommBusListener"] === "function",
+      async () => {
+        scope["RegisterCommBusListener"] = (onReady: () => void) => {
+          queueMicrotask(onReady);
+          return { on: () => undefined, callWasm: (name: string) => sent.push(name) };
+        };
+      },
+    ),
+  );
+  await new Promise((resolve) => queueMicrotask(() => resolve(null)));
+
+  delete scope["RegisterViewListener"];
+  delete scope["RegisterCommBusListener"];
+
+  assert.deepEqual(sent, [RELAY_CHANNEL]);
 });
 
 test("the app announces itself so a client that is already connected republishes", async () => {

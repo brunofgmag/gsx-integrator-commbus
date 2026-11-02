@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.14.1](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.14.0...v0.14.1) (2026-11-02)
+
+
+* wait for the CommBus service another app started loading ([#65](https://github.com/brunofgmag/gsx-integrator-commbus/issues/65)) ([200dcce](https://github.com/brunofgmag/gsx-integrator-commbus/commit/200dcce1119ddfb96c0d82a6975a77ec992bce57))
+
+
+### Bug Fixes
+
+* **efb:** wait for the CommBus service another app started loading ([ceb0d2b](https://github.com/brunofgmag/gsx-integrator-commbus/commit/ceb0d2b1a12a47e6b9a48becc4d8045c171b4b2a)) ([200dcce](https://github.com/brunofgmag/gsx-integrator-commbus/commit/200dcce1119ddfb96c0d82a6975a77ec992bce57))
+
 ## [0.14.0](https://github.com/brunofgmag/gsx-integrator-commbus/compare/v0.13.0...v0.14.0) (2026-10-28)
 
 
